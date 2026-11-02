@@ -50,7 +50,7 @@ P = {"title": "fld0JVy1STI2nhmP1", "copy": "fldNpsfupzhYrXorE", "author": "fldaK
      "gen": "flde7F6SG3x75KRTR", "self": "fldKlGOWLtGe9x0ZG", "note": "fldkZDDMTtB0prwzJ"}
 TITLES = {"Glen Tindal": "CEO and Managing Director, evoila US", "Mark Maisano": "VP Alliances & Strategy, evoila US",
           "Andrew Hald": "Lead Solution Architect, VCDX #4",
-          "Tom MacKay": "Senior Solutions Architect, evoila US"}
+          "Tom MacKay": "VP of Technical Sales and Services, evoila US"}
 T_CALL = "tbllSce3nYaZiZfRS"
 C = {"title": "fldvTkxCvJBfBxuGp", "date": "fldKxPm29yO8wvNxA", "parts": "fldwpSTIKKRJw6CwT", "text": "fldZuwTbamTYvdQAa",
      "overview": "fldb82uxuawj7h5Ei"}
