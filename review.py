@@ -20,7 +20,7 @@ Slide text (written here):
   [{"n": 1, "title": "...", "boxes": [{"k": "s2", "paras": ["...", "..."]}]}]
 Keys: "s2" = third shape on the slide, "s2.1" = second shape inside that group, "s4:r1c0" = a table cell.
 """
-import copy, json, os, subprocess, sys
+import copy, json, os, re, subprocess, sys
 
 import run_request as rr
 
@@ -281,7 +281,7 @@ def finalize():
             if stem.endswith(suffix):
                 stem = stem[: -len(suffix)]
         version += 1
-        out = os.path.join(rr.WORK, f"{rr.safe(stem)}_v{version}.pptx")
+        out = os.path.join(rr.WORK, re.sub(r"[^A-Za-z0-9._-]+", "_", stem).strip("_")[:90] + f"_v{version}.pptx")
         prs.save(out)
         subprocess.run(["soffice", "--headless", "--convert-to", "pdf", "--outdir", rr.WORK, out],
                        check=True, timeout=240, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
