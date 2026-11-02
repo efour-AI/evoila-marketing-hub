@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>Review your deck</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--violet:#1F1534;--indigo:#0D09B5;--blue:#0075E4;--green:#0BD7A1;--bg:#F6F0EB;--card:#fff;--ink:#1F1534;--muted:#6B6478;--line:#E4DDD6;--soft:#FBF8F5;
+--ok:#0F8F6A;--okbg:#DDF7EE;--warn:#9A5B00;--warnbg:#FDF1D8;--bad:#B42318;--badbg:#FDE8E7;--chg:#E7E7F3}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17102A;--card:#231A3B;--ink:#F3EEF8;--muted:#B5ACC4;--line:#3A3052;--soft:#2A2046;--okbg:#0F3B30;--ok:#7BE8C6;--warnbg:#45330C;--warn:#F5C66B;--badbg:#4A1A1A;--bad:#FF9C93;--chg:#2E2A5A}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 Inter,system-ui,-apple-system,"Segoe UI",sans-serif;padding-bottom:40px}
+a{color:var(--blue)}
+header{background:var(--violet);color:#fff;padding:14px 16px}
+.wrap{max-width:1180px;margin:0 auto}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap}
+.logo{height:22px;width:auto;display:block}
+.links{display:flex;gap:14px;font-size:13px}
+.links a{color:rgba(255,255,255,.8);text-decoration:none}
+.links a:hover{color:#fff}
+.headline{margin-top:12px}
+h1{font-size:22px;margin:0;letter-spacing:-.01em}
+.who{font-size:13px;color:rgba(255,255,255,.75);margin-top:2px}
+main{padding:16px}
+.bar{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;justify-content:space-between;margin-bottom:12px;position:sticky;top:8px;z-index:4}
+@media(max-width:700px){.bar{position:static}}
+.bar .count{font-weight:600}
+.bar .sub{font-size:13px;color:var(--muted)}
+.prog{height:8px;background:var(--soft);border-radius:99px;overflow:hidden;margin-top:6px;width:min(320px,70vw)}
+.prog i{display:block;height:8px;background:var(--blue);border-radius:99px;width:0}
+.btn{font:inherit;font-weight:600;font-size:14.5px;border:1px solid var(--line);border-radius:999px;padding:10px 18px;background:var(--card);color:var(--ink);cursor:pointer;min-height:44px;text-decoration:none;display:inline-flex;align-items:center;justify-content:center;gap:8px}
+.btn.primary{background:var(--blue);border-color:var(--blue);color:#fff}
+.btn.dark{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn.link{border:0;background:none;color:var(--blue);padding:8px 4px;text-decoration:underline;min-height:0}
+.tools{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:0 0 14px;font-size:13px;color:var(--muted)}
+.pill{background:var(--card);border-radius:99px;padding:7px 12px}
+.slide{background:var(--card);border:2px solid var(--card);border-radius:18px;padding:18px;display:flex;flex-wrap:wrap;gap:22px;margin-bottom:14px}
+.slide.need{border-color:#FB923F}
+.thumb{flex:0 1 440px;min-width:240px}
+.thumb img{width:100%;display:block;border-radius:10px;border:1px solid var(--line);background:var(--soft);aspect-ratio:16/9;object-fit:contain}
+.thumb .noimg{aspect-ratio:16/9;border-radius:10px;border:1px dashed var(--line);display:grid;place-items:center;color:var(--muted);font-size:13px;text-align:center;padding:12px}
+.thumb .cap{font-size:12px;color:var(--muted);margin-top:6px}
+.body{flex:999 1 420px;min-width:0;display:flex;flex-direction:column;gap:12px}
+.hd{display:flex;flex-wrap:wrap;align-items:center;gap:6px 12px}
+.num{font-size:12px;font-weight:600;letter-spacing:.08em;color:var(--muted)}
+.hd h2{margin:0;font-size:18px;flex:1;min-width:180px;line-height:1.25}
+.badge{font-size:12.5px;font-weight:600;padding:5px 11px;border-radius:99px;background:var(--soft)}
+.badge.good{background:var(--okbg);color:var(--ok)}
+.badge.work{background:var(--warnbg);color:var(--warn)}
+.badge.chg{background:var(--chg)}
+details.txt{background:var(--soft);border-radius:12px;padding:10px 14px}
+details.txt summary{cursor:pointer;font-size:13px;color:var(--muted)}
+.lines{font-size:14px;line-height:1.45;margin-top:6px}
+.lines p{margin:0 0 6px}
+.lines p.new{background:var(--chg);border-radius:6px;padding:2px 6px}
+.acts{display:flex;flex-wrap:wrap;gap:8px}
+.btn.on{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.panel{border:1px solid var(--line);border-radius:14px;padding:14px;display:flex;flex-direction:column;gap:10px}
+.panel label.l{font-weight:600;font-size:14px}
+textarea{width:100%;font:inherit;font-size:14.5px;line-height:1.5;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px;resize:vertical}
+.chk{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.4}
+.chk input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--indigo)}
+.hint{font-size:12.5px;color:var(--muted)}
+.cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+.cmp>div{border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.45}
+.cmp .b{background:var(--soft)}
+.cmp .a{background:var(--chg)}
+.cmp h4{margin:0 0 4px;font-size:11.5px;letter-spacing:.1em;color:var(--muted)}
+.cmp p{margin:0 0 6px}
+.ed label{display:block;font-size:12px;color:var(--muted);margin:8px 0 2px}
+.msg{padding:12px 14px;border-radius:10px;margin:0 0 12px;font-size:14px}
+.msg.err{background:var(--badbg);color:var(--bad)}.msg.ok{background:var(--okbg);color:var(--ok)}.msg.info{background:var(--card);border:1px solid var(--line)}
+.center{background:var(--card);border-radius:18px;padding:28px;max-width:760px;margin:10px auto}
+.center h2{margin:0 0 6px;font-size:22px}
+.dl{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}
+.sum{white-space:pre-wrap;background:var(--soft);border-radius:12px;padding:12px 14px;font-size:14px}
+.vers{font-size:14px;margin-top:14px}
+.vers li{margin:4px 0}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--line);border-top-color:var(--blue);border-radius:50%;animation:s 1s linear infinite;vertical-align:-2px}
+@keyframes s{to{transform:rotate(360deg)}}
+.saved{font-size:12.5px;color:var(--muted)}
+.loading{color:var(--muted);padding:40px 0;text-align:center}
+.hidden{display:none!important}
+button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible,summary:focus-visible{outline:2px solid var(--indigo);outline-offset:2px}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+ <div class="top"><svg viewBox="0 0 175.24 41.66" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" class="logo" role="img" aria-label="evoila"><defs></defs><g><path d="M31.95 26.76C31.7 28.61 30.94 34.23 23.13 38.47 20.03 40.15 16.06 41.29 12.24 41.58 11.59 41.63 10.97 41.66 10.38 41.66 7.63 41.66 5.5 41.14 4.52 40.18 3.9 39.63 3.53 38.82 3.53 37.97 3.53 37.47 3.65 36.98 3.88 36.54 4.16 35.93 4.6 35.36 5.2 34.68L5.2 34.68C5.2 34.68 5.45 34.83 5.58 34.91 5.72 34.99 6.05 35.14 6.05 35.14 5.43 35.84 4.96 36.4 4.72 36.95L4.72 36.98C4.54 37.28 4.46 37.62 4.46 37.97 4.46 38.55 4.71 39.11 5.15 39.5 7.11 41.41 15.92 41.32 22.68 37.65 30.07 33.64 30.78 28.38 31.01 26.65 31.58 22.43 29.46 18.25 25.73 16.24 25.82 16.14 25.91 16.05 25.99 15.95 26.13 15.8 26.25 15.66 26.37 15.51 30.32 17.74 32.55 22.23 31.94 26.77Z" fill="#FFFFFF"/><path d="M25.73 16.23C25.12 16.9 24.44 17.62 23.79 18.49 21.7 21.34 21.47 24.64 21.14 26.97 20.32 32.82 14.94 36.9 9.13 36.07 8.03 35.92 7 35.59 6.05 35.13 6.17 35 6.29 34.86 6.41 34.73 6.97 34.11 7.61 33.41 8.2 32.59 10.13 29.94 10.51 26.88 10.79 24.65 10.83 24.38 10.86 24.13 10.89 23.88 11.26 21.17 12.64 18.77 14.81 17.11 16.97 15.45 19.64 14.74 22.33 15.11 23.52 15.27 24.64 15.63 25.69 16.19L25.69 16.19C25.69 16.19 25.73 16.22 25.73 16.22Z" fill="#FFFFFF"/><path d="M27.66 12.87C27.66 13.3 27.55 13.72 27.35 14.08 27.13 14.56 26.79 15.02 26.37 15.51 26.29 15.46 26.23 15.42 26.14 15.38L26.14 15.38C24.99 14.76 23.75 14.36 22.45 14.19 19.52 13.79 16.6 14.56 14.24 16.37 11.88 18.18 10.36 20.8 9.97 23.76 9.93 24.01 9.9 24.27 9.87 24.54 9.59 26.78 9.24 29.58 7.46 32.03 6.89 32.81 6.3 33.46 5.73 34.09 5.68 34.14 5.63 34.2 5.59 34.25L5.59 34.25C5.59 34.25 5.35 34.51 5.35 34.51 5.3 34.56 5.26 34.61 5.21 34.66 1.63 32.53-0.51 28.38 0.11 23.98 0.47 21.42 1.66 16.46 8.75 12.67 15.44 9.09 24.62 8.82 26.82 10.99 27.34 11.45 27.66 12.12 27.66 12.87Z" fill="#FFFFFF"/><path d="M5.58 34.26C5.5 34.35 5.42 34.44 5.34 34.52L5.2 34.67 5.2 34.67C5.25 34.62 5.29 34.57 5.34 34.52L5.58 34.25 5.58 34.25Z" fill="#FFFFFF"/></g><g id="Logo-2"><g><path d="M76.72 40.72 69.67 13.66 74.73 12.34 80.7 35.26 87.51 19.9C88.16 18.13 87.75 16.78 87.46 15.78 87.22 14.94 87 14.53 86.57 13.72L91.63 12.4C92.13 13.33 92.52 14.2 92.85 15.59 93.23 17.12 93.47 18.9 92.83 20.82L83.96 40.76 76.72 40.74 76.72 40.74Z" fill="#FFFFFF"/><path d="M97.33 30.8 97.31 23.18C97.29 16.04 100.91 12.42 108.96 12.42 117.01 12.42 120.78 16.09 120.75 23.18L120.77 30.8C120.82 37.42 117.2 41.61 109.12 41.61 101.04 41.61 97.33 37.1 97.33 30.8L97.33 30.8ZM115.82 23.18C115.8 18.58 113.88 16.68 109.25 16.66 104.53 16.66 102.71 18.55 102.71 23.18L102.71 30.8C102.71 34.9 104.53 37.34 109.33 37.34 114.13 37.34 115.83 35.18 115.83 30.8L115.83 23.18 115.83 23.18Z" fill="#FFFFFF"/><path d="M127.63 13.78 132.88 12.42 132.86 40.72 127.7 40.72 127.63 13.78Z" fill="#FFFFFF"/><path d="M140.43 1.37 145.66 0 145.66 40.7 140.43 40.7 140.43 1.37 140.43 1.37Z" fill="#FFFFFF"/><path d="M175.24 40.72 170.9 40.72 170.42 37.22C167.52 40.07 163.54 41.65 159.61 41.65 154.84 41.65 152.59 38.87 151.96 35.54 151.82 34.82 151.82 34.05 151.79 33.29L151.79 23.05C151.79 16.03 153.92 12.41 163.73 12.41 167.54 12.41 171.98 13.3 175.24 14.38L175.24 40.72 175.24 40.72ZM170.01 17.33C168.28 16.92 166.05 16.61 163.9 16.61 159.13 16.61 157.02 17.98 157.02 23.68L157.02 32.91C157.02 33.63 157.04 34.4 157.14 34.92 157.4 36.29 158.24 37.32 160.14 37.32 164.02 37.32 167.02 35.04 170.02 32.02L170.02 17.33 170.02 17.33Z" fill="#FFFFFF"/><circle cx="130.25" cy="6.59" r="2.85" fill="#FFFFFF"/><path d="M64.62 32.57C61.07 34.75 56.3 37.34 53.07 37.34 49.84 37.34 48.11 36.53 47.75 34.7 47.7 34.46 47.63 34.05 47.63 33.41L47.63 31.08C50.19 30.31 52.71 30.03 56.28 28.85 64.6 26.14 66.56 23.74 65.63 18.9 64.79 14.66 60.62 12.43 55.39 12.43 46.5 12.43 42.3 16.07 42.3 23.31L42.32 32.35C42.32 33.36 42.44 34.29 42.58 34.99 43.35 38.92 46.39 41.63 52.72 41.63 57.85 41.63 62.62 38.9 65.86 36.69L64.61 32.57 64.61 32.57ZM47.6 22.68C47.6 18.03 50.88 16.69 55.77 16.69 58.6 16.69 60.37 17.58 60.76 19.45 61.22 21.8 58.72 23.62 53.76 25.03 50.88 25.84 49.25 26.16 47.6 26.61L47.6 22.68 47.6 22.68Z" fill="#FFFFFF"/></g></g></svg>
+ <div class="links"><a href="../#decks" id="back">← Decks on the hub</a></div></div>
+ <div class="headline"><h1 id="h1">Review your deck</h1><div class="who" id="who">Loading…</div></div>
+</div></header>
+<main class="wrap">
+ <div id="flash"></div>
+ <div id="app"><div class="loading">Loading your deck…</div></div>
+</main>
+<script>
+const DR="https://hook.us2.make.com/vx2zaisvefrl5peu13refxuh5btdpjmh";
+const API="https://hook.us2.make.com/o28rqytj8ifgm1o2tckavp2194d8jbqt";
+const DEV=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)?"phone":"desktop";
+const K={email:"fldsh54IoNqdFDRM4",name:"fldXM03WhdelyP62D",company:"fldh6PvIYkHgR7m8o",audience:"fldG2ZAIhyN5KdFAy",framing:"fldCEoEULzI0Px2BR",
+ date:"fldehcJBsAzui66pz",status:"fldxQZCQ8OHA7sOTa",pptx:"fldxwsdZxpMOq0NiL",pdf:"fldNi5sd61xg5OhcL",prev:"fldOBqD7uE1aMkL55",text:"fldBNsStatpXxpyJ2",
+ state:"fldLC1a4PfYoqjndK",ready:"fldwLW2DoIx9ZVi40",ver:"fldpELDqobTnQA7CH",earlier:"fld3gYMlUUZdHpSZP",summary:"fldO5Dkw2qtOMjQre",libver:"fldxnMaaGGwVKqcb4",type:"fldQahyDEnFyMIm87"};
+function store(k,v){try{v===undefined?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}}
+function load(k){try{return localStorage.getItem(k)}catch(e){return null}}
+const $=s=>document.querySelector(s);
+function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;}
+function btn(cls,text,fn){const b=el("button","btn "+(cls||""),text);b.type="button";if(fn)b.onclick=fn;return b;}
+function flash(text,kind){const d=$("#flash");d.innerHTML="";if(text)d.appendChild(el("div","msg "+(kind||"ok"),text));}
+function fmt(d){if(!d)return"";const x=new Date(String(d).length===10?d+"T12:00:00":d);return x.toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"});}
+
+/* who is this: personal link in the hash, or the hub sign-in on this device (same as the other hub pages) */
+let token=null,admin=false;
+const hp=new URLSearchParams(location.hash.slice(1)),qp=new URLSearchParams(location.search);
+const DECK=qp.get("d")||"";
+if(hp.get("k")){token=hp.get("k");admin=true;store("evoila_hub","k:"+token);store("evoila_desk_k",token);}
+else if(hp.get("t")){token=hp.get("t");store("evoila_hub","t:"+token);store("evoila_desk_t",token);}
+else{const s=load("evoila_hub");if(s){admin=s[0]==="k";token=s.slice(2);}else if(load("evoila_desk_t"))token=load("evoila_desk_t");else if(load("evoila_desk_k")){token=load("evoila_desk_k");admin=true;}}
+if(hp.toString())history.replaceState(null,"",location.pathname+location.search);
+
+async function call(params,url){
+  const r=await fetch(url||DR,{method:"POST",body:new URLSearchParams(Object.assign({t:token,dev:DEV},params))});
+  const txt=await r.text();
+  if(r.status===401)throw new Error("auth");
+  if(!r.ok)throw new Error(txt||("Error "+r.status));
+  return txt;
+}
+async function callJSON(params){const t=await call(params);try{return JSON.parse(t)}catch(e){throw new Error(t==="Accepted"?"notyours":t)}}
+function track(item){try{fetch(API,{method:"POST",keepalive:true,body:new URLSearchParams({t:token,dev:DEV,a:"track",type:"Deck review",item:item})});}catch(e){}}
+
+let F=null,ME="",TEXT=[],ST={slides:{}},saveTimer=null,pollTimer=null;
+function slideState(n){return ST.slides[n]||(ST.slides[n]={});}
+function boxesOf(n){const s=TEXT.find(x=>String(x.n)===String(n));return s?s.boxes:[];}
+
+async function start(){
+  if(!token){fail("auth");return;}
+  if(!/^rec[A-Za-z0-9]{14}$/.test(DECK)){fail("link");return;}
+  try{
+    const j=await callJSON({a:"deckget",id:DECK});
+    F=j.deck.fields||{};ME=j.me;admin=j.admin==="yes"||admin;
+    try{TEXT=JSON.parse(F[K.text]||"[]")}catch(e){TEXT=[]}
+    try{ST=JSON.parse(F[K.state]||"{}")}catch(e){ST={}}
+    if(!ST.slides)ST.slides={};
+    render();
+  }catch(e){fail(e.message)}
+}
+function fail(why){
+  $("#app").innerHTML="";
+  if(why==="auth"){$("#who").textContent="Not signed in";flash("Open this page from the link in your deck email, or sign in to the hub first.","err");return;}
+  if(why==="link"){flash("This link is missing the deck. Open it from your deck email or from Decks on the hub.","err");return;}
+  if(why==="notyours"){flash("This deck was requested by someone else, so only they can review it. Ask them to share it, or request your own from the hub.","err");return;}
+  flash("Couldn't load the deck just now. Refresh in a minute; if it keeps happening, tell Kevin.","err");
+}
+
+function head(){
+  const co=F[K.company]||"your meeting";
+  $("#h1").textContent="Deck for "+co;
+  const bits=["Requested by "+(F[K.name]||"you")];if(F[K.audience])bits.push(F[K.audience]+" audience");
+  if(F[K.date])bits.push("meeting "+fmt(F[K.date]));
+  bits.push("v"+(F[K.ver]||1)+(F[K.status]==="Final"||F[K.status]==="Sent"?" final":" draft"));
+  $("#who").textContent=bits.join("  ·  ")+(ME?"  ·  signed in as "+ME:"");
+}
+
+function render(){
+  head();clearTimeout(pollTimer);
+  const s=F[K.status]||"";
+  if(s==="In review")return drawReview();
+  if(s==="Finalizing")return drawWaiting("Building your final deck","Your changes are going into the real slides now. The final PowerPoint and PDF will be in your inbox in about three minutes, and here on this page.",true);
+  if(s==="Final"||s==="Sent")return drawFinal();
+  if(s==="Error")return drawWaiting("Something went wrong with this deck","Kevin has the details and will follow up. Nothing you saved here is lost.",false);
+  if(s==="Ready"&&!F[K.ready])return drawWaiting("Getting your slides ready to review","Almost there. This page refreshes on its own.",true);
+  return drawWaiting("Your deck is still being built","This usually takes about five minutes. This page refreshes on its own, and you'll also get an email when it is ready to review.",true);
+}
+function drawWaiting(title,text,poll){
+  const a=$("#app");a.innerHTML="";const c=el("div","center");
+  const h=el("h2");if(poll){h.appendChild(el("span","spin"));h.appendChild(document.createTextNode(" "));}h.appendChild(document.createTextNode(title));
+  c.append(h,el("p",null,text));a.appendChild(c);
+  if(poll)pollTimer=setTimeout(async()=>{try{const j=await callJSON({a:"deckget",id:DECK});F=j.deck.fields||{};try{TEXT=JSON.parse(F[K.text]||"[]")}catch(e){}try{const st=JSON.parse(F[K.state]||"{}");if(st.slides)ST=st;}catch(e){}render();}catch(e){pollTimer=setTimeout(()=>render(),20000)}},20000);
+}
+
+/* ---------- final view ---------- */
+function drawFinal(){
+  const a=$("#app");a.innerHTML="";const c=el("div","center");
+  c.appendChild(el("h2",null,"Your final deck"));
+  c.appendChild(el("p",null,"This version is final. The files are below and in your email."));
+  const dl=el("div","dl");
+  const pp=(F[K.pptx]||[])[0],pd=(F[K.pdf]||[])[0];
+  if(pp){const x=el("a","btn primary","Download PowerPoint");x.href=pp.url;x.target="_blank";x.rel="noopener";x.onclick=()=>track("Download final PPTX");dl.appendChild(x);}
+  if(pd){const x=el("a","btn","Download PDF");x.href=pd.url;x.target="_blank";x.rel="noopener";x.onclick=()=>track("Download final PDF");dl.appendChild(x);}
+  c.appendChild(dl);
+  if(F[K.summary]){c.appendChild(el("h3",null,"What changed in review"));c.appendChild(el("div","sum",F[K.summary]));}
+  const old=F[K.earlier]||[];
+  if(old.length){c.appendChild(el("h3",null,"Earlier versions"));const ul=el("ul","vers");
+    old.forEach(f=>{const li=el("li");const x=el("a",null,f.filename||"file");x.href=f.url;x.target="_blank";x.rel="noopener";li.appendChild(x);ul.appendChild(li);});c.appendChild(ul);}
+  c.appendChild(el("p","hint","Need another change? Request the deck again from the hub, or tell Kevin what to change."));
+  a.appendChild(c);
+}
+
+/* ---------- review ---------- */
+function count(){
+  const n=TEXT.length;let done=0,pending=0;
+  TEXT.forEach(s=>{const x=ST.slides[s.n]||{};if(x.status==="good"||x.kept)done++;else if(x.status==="work")pending++;});
+  return{n,done,pending};
+}
+function save(now){
+  clearTimeout(saveTimer);$("#saved")&&($("#saved").textContent="Saving…");
+  saveTimer=setTimeout(async()=>{
+    ST.updated=new Date().toISOString();ST.by=ME;
+    try{await callJSON({a:"decksave",id:DECK,state:JSON.stringify(ST)});$("#saved")&&($("#saved").textContent="Saved");}
+    catch(e){$("#saved")&&($("#saved").textContent="Not saved, check your connection");}
+  },now?0:1200);
+}
+function changed(){drawBar();save();}
+
+function drawReview(){
+  const a=$("#app");a.innerHTML="";
+  if(!TEXT.length){
+    a.appendChild(el("div","msg info","The slide text for this deck isn't available, so it can't be reviewed slide by slide here. Download it below, and reply to your deck email with any changes."));
+    const dl=el("div","dl");const pp=(F[K.pptx]||[])[0],pd=(F[K.pdf]||[])[0];
+    if(pp){const x=el("a","btn primary","Download PowerPoint");x.href=pp.url;x.target="_blank";dl.appendChild(x);}
+    if(pd){const x=el("a","btn","Download PDF");x.href=pd.url;x.target="_blank";dl.appendChild(x);}
+    a.appendChild(dl);return;
+  }
+  const bar=el("div","bar");bar.id="bar";a.appendChild(bar);
+  const tools=el("div","tools");
+  tools.appendChild(el("span","pill","The pictures show the draft. Changes you keep go into the real slides when you submit."));
+  tools.appendChild(btn("","Mark all unreviewed as Looks good",()=>{TEXT.forEach(s=>{const x=slideState(s.n);if(!x.status)x.status="good";});drawSlides();changed();}));
+  const pd=(F[K.pdf]||[])[0];if(pd){const x=el("a","btn link","Open the draft PDF");x.href=pd.url;x.target="_blank";x.rel="noopener";tools.appendChild(x);}
+  a.appendChild(tools);
+  const list=el("div");list.id="slides";a.appendChild(list);
+  const foot=el("div","bar");foot.id="foot";foot.style.position="static";a.appendChild(foot);
+  drawSlides();drawBar();track("Opened deck review");
+}
+function drawBar(){
+  const c=count();
+  [$("#bar"),$("#foot")].forEach((b,i)=>{if(!b)return;b.innerHTML="";
+    const l=el("div");l.appendChild(el("div","count",c.done+" of "+c.n+" slides reviewed"));
+    if(i===0){const p=el("div","prog");const bar=el("i");bar.style.width=Math.round(100*c.done/Math.max(1,c.n))+"%";p.appendChild(bar);l.appendChild(p);}
+    const sub=el("div","sub",c.done===c.n?"Everything is reviewed. Submit to build the final deck.":(c.pending?c.pending+" waiting on a note or a Keep. ":"")+"Submit unlocks when every slide is Looks good or has a kept change.");
+    l.appendChild(sub);
+    const r=el("div");r.style.display="flex";r.style.gap="12px";r.style.alignItems="center";r.style.flexWrap="wrap";
+    if(i===0){const sv=el("span","saved","");sv.id="saved";r.appendChild(sv);}
+    const sb=btn("primary","Submit final deck",submit);sb.disabled=c.done!==c.n;r.appendChild(sb);
+    b.append(l,r);});
+}
+function drawSlides(){
+  const list=$("#slides");list.innerHTML="";
+  const prev=F[K.prev]||[];
+  TEXT.forEach((s,i)=>list.appendChild(slideCard(s,prev[i])));
+}
+function slideCard(s,img){
+  const x=slideState(s.n);
+  const card=el("article","slide"+(x.status==="work"&&!x.kept?" need":""));card.id="slide-"+s.n;
+  const th=el("div","thumb");
+  if(img){const im=el("img");im.src=(img.thumbnails&&img.thumbnails.large&&img.thumbnails.large.url)||img.url;im.alt="Slide "+s.n+" preview";im.loading="lazy";th.appendChild(im);}
+  else th.appendChild(el("div","noimg","Preview not available for this slide. The text is on the right."));
+  th.appendChild(el("div","cap",x.kept?"Picture shows the draft. Your kept change is on the right and goes in when you submit.":"Slide "+s.n+" as built"));
+  const b=el("div","body");
+  const hd=el("div","hd");hd.appendChild(el("span","num","SLIDE "+s.n));hd.appendChild(el("h2",null,s.title||("Slide "+s.n)));
+  let badge=["Not reviewed",""];if(x.status==="good")badge=["Looks good","good"];else if(x.kept)badge=["Changed","chg"];else if(x.status==="work")badge=[x.applied?"Change to confirm":"Needs work","work"];
+  hd.appendChild(el("span","badge "+badge[1],badge[0]));b.appendChild(hd);
+  // text on the slide (with kept changes shown)
+  const det=el("details","txt");const sm=el("summary",null,x.kept?"Text on this slide, with your change":"Text on this slide");det.appendChild(sm);
+  const lines=el("div","lines");
+  s.boxes.forEach(bx=>{const aft=x.kept&&x.after&&x.after[bx.k];(aft||bx.paras).forEach(p=>{if(p)lines.appendChild(el("p",aft?"new":null,p));});});
+  det.appendChild(lines);if(x.kept)det.open=true;b.appendChild(det);
+  // actions
+  const acts=el("div","acts");
+  const g=btn(x.status==="good"?"on":"","✓  Looks good",()=>{Object.assign(x,{status:"good",applied:false,kept:false});delete x.after;delete x.proposal;redraw(s.n);changed();});g.setAttribute("aria-pressed",x.status==="good");
+  const w=btn(x.status==="work"?"on":"","✎  Needs work",()=>{if(x.status!=="work"){x.status="work";x.kept=false;x.applied=false;}redraw(s.n);changed();setTimeout(()=>{const t=$("#note-"+s.n);t&&t.focus();},30);});w.setAttribute("aria-pressed",x.status==="work");
+  acts.append(g,w);b.appendChild(acts);
+  if(x.status==="work"&&!x.kept){b.appendChild(x.applied&&x.proposal?comparePanel(s,x):notePanel(s,x));}
+  if(x.kept){const r=el("div","acts");r.appendChild(el("span","hint",x.library?"Change kept. It will also go to Kevin as a fix for the slide library.":"Change kept, for this deck only."));
+    r.appendChild(btn("link","Edit again",()=>{x.kept=false;x.applied=false;redraw(s.n);changed();}));b.appendChild(r);}
+  card.append(th,b);return card;
+}
+function redraw(n){const s=TEXT.find(t=>String(t.n)===String(n));const prev=F[K.prev]||[];const i=TEXT.indexOf(s);const old=$("#slide-"+n);if(old&&s)old.replaceWith(slideCard(s,prev[i]));}
+
+function notePanel(s,x){
+  const p=el("div","panel");
+  const lab=el("label","l","What should change on this slide?");lab.htmlFor="note-"+s.n;
+  const ta=el("textarea");ta.id="note-"+s.n;ta.rows=3;ta.value=x.note||"";ta.placeholder="For example: name the account in the headline, use the healthcare reference, shorten the third line.";
+  ta.oninput=()=>{x.note=ta.value;save();};
+  const ck=el("label","chk");const cb=el("input");cb.type="checkbox";cb.checked=!!x.library;cb.onchange=()=>{x.library=cb.checked;save();};
+  ck.append(cb,el("span",null,"This is wrong for everyone. Also send it to Kevin as a fix for the slide library, not just my deck."));
+  const row=el("div","acts");
+  const ap=btn("primary","Apply change",async()=>{
+    const note=(ta.value||"").trim();if(!note){ta.focus();return;}
+    x.note=note;ap.disabled=true;ap.innerHTML="";ap.append(el("span","spin"),document.createTextNode(" Rewriting, about 10 seconds"));
+    try{
+      const txt=s.boxes.map(bx=>bx.k+": "+JSON.stringify(bx.paras)).join("\n");
+      const out=await call({a:"slidefix",n:String(s.n),title:s.title||"",audience:F[K.audience]||"",text:txt,note});
+      const m=out.match(/\{[\s\S]*\}/);if(!m)throw new Error(out.slice(0,200));
+      const j=JSON.parse(m[0]);const boxes={};
+      Object.keys(j.boxes||{}).forEach(k=>{if(s.boxes.some(b=>b.k===k)&&Array.isArray(j.boxes[k]))boxes[k]=j.boxes[k].map(String);});
+      x.proposal={boxes,summary:String(j.summary||"")};x.applied=true;
+      if(!Object.keys(boxes).length)x.proposal.summary=(x.proposal.summary||"")+" No words on the slide were changed.";
+      redraw(s.n);changed();track("Slide rewrite");
+    }catch(e){ap.disabled=false;ap.textContent="Apply change";
+      const er=el("div","msg err","The rewrite didn't come back just now. Try again, or edit the words yourself.");p.appendChild(er);}
+  });
+  row.append(ap,btn("link","Edit the words myself",()=>{x.proposal={boxes:{},summary:"",manual:true};x.applied=true;redraw(s.n);}));
+  p.append(lab,ta,ck,row,el("div","hint","Only the words change. Layout, logo and colors stay as they are."));
+  return p;
+}
+function comparePanel(s,x){
+  const p=el("div","panel");const pr=x.proposal;
+  if(!pr.manual){
+    p.appendChild(el("div",null,"Your note: "+(x.note||"")));
+    if(pr.summary)p.appendChild(el("div","hint",pr.summary));
+    const keys=Object.keys(pr.boxes);
+    if(keys.length){const cmp=el("div","cmp");
+      const bf=el("div","b");bf.appendChild(el("h4",null,"BEFORE"));const af=el("div","a");af.appendChild(el("h4",null,"AFTER"));
+      keys.forEach(k=>{const old=(s.boxes.find(b=>b.k===k)||{}).paras||[];old.forEach(t=>t&&bf.appendChild(el("p",null,t)));pr.boxes[k].forEach(t=>t&&af.appendChild(el("p",null,t)));});
+      cmp.append(bf,af);p.appendChild(cmp);}
+  }
+  // editable version of the change (or of every box when editing by hand)
+  const ed=el("details","ed");ed.appendChild(el("summary",null,pr.manual?"Edit the words on this slide":"Adjust the wording"));
+  if(pr.manual)ed.open=true;
+  const fields={};
+  (pr.manual?s.boxes:s.boxes.filter(b=>pr.boxes[b.k])).forEach((bx,i)=>{
+    const id="ed-"+s.n+"-"+i;const l=el("label",null,"Text box "+(i+1)+(bx.paras[0]?": "+bx.paras[0].slice(0,40):""));l.htmlFor=id;
+    const ta=el("textarea");ta.id=id;ta.rows=Math.min(6,Math.max(2,(pr.boxes[bx.k]||bx.paras).length+1));ta.value=(pr.boxes[bx.k]||bx.paras).join("\n");
+    fields[bx.k]=ta;ed.append(l,ta);});
+  ed.appendChild(el("div","hint","One line per paragraph, as on the slide."));
+  p.appendChild(ed);
+  const row=el("div","acts");
+  row.appendChild(btn("primary","Keep",()=>{
+    const after={};
+    Object.keys(fields).forEach(k=>{const v=fields[k].value.split("\n").map(t=>t.trim());while(v.length&&!v[v.length-1])v.pop();
+      const old=(s.boxes.find(b=>b.k===k)||{}).paras||[];if(JSON.stringify(v)!==JSON.stringify(old))after[k]=v;});
+    if(!Object.keys(after).length){alert("Nothing on the slide changed. Edit the words, or mark the slide Looks good.");return;}
+    x.after=after;x.kept=true;x.applied=true;if(pr.manual&&!x.note)x.note="Edited by hand";
+    redraw(s.n);changed();}));
+  row.appendChild(btn("","Undo",()=>{x.applied=false;delete x.proposal;redraw(s.n);changed();}));
+  p.appendChild(row);
+  return p;
+}
+async function submit(){
+  const c=count();if(c.done!==c.n)return;
+  const nch=TEXT.filter(s=>(ST.slides[s.n]||{}).kept).length;
+  if(!confirm(nch?"Build the final deck with "+nch+" changed slide"+(nch>1?"s":"")+"? You'll get the files by email in about three minutes.":"Every slide looks good. Send the deck as final?"))return;
+  clearTimeout(saveTimer);
+  document.querySelectorAll(".bar .btn.primary").forEach(b=>{b.disabled=true;b.textContent="Submitting…";});
+  ST.updated=new Date().toISOString();ST.by=ME;ST.submitted=ST.updated;
+  try{await callJSON({a:"decksubmit",id:DECK,state:JSON.stringify(ST)});track("Submitted deck review");F[K.status]="Finalizing";window.scrollTo(0,0);render();}
+  catch(e){flash("Couldn't submit just now. Your review is saved; try Submit again in a minute.","err");drawBar();}
+}
+start();
+</script>
+</body>
+</html>

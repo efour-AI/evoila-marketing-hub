@@ -3,17 +3,18 @@ name: Build walking deck
 # Fired by Airtable automations (repository_dispatch):
 #   build-deck     - "Deck request: plan and build" (record = Deck Requests row)
 #   check-library  - "Slide library: check new version" (record = Slide Library Versions row)
+#   finalize-deck  - "Deck review: build the final" (record = Deck Requests row, Status = Finalizing)
 # or by hand from the Actions tab (workflow_dispatch).
 on:
   repository_dispatch:
-    types: [build-deck, check-library]
+    types: [build-deck, check-library, finalize-deck]
   workflow_dispatch:
     inputs:
       record_id:
         description: "Record ID (rec...)"
         required: true
       mode:
-        description: "build-deck or check-library"
+        description: "build-deck, check-library or finalize-deck"
         required: false
         default: build-deck
 

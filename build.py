@@ -1,4 +1,9 @@
-"""Entry point for build-deck runs: Claude plans and researches, then run_request.py builds the deck.
+"""Entry point for build-deck and finalize-deck runs.
+
+build-deck: Claude plans and researches, then run_request.py (or custom_deck / convert_deck) builds the
+deck, then review.prepare() saves slide previews and slide text and ticks Review ready, which sends the
+requester the review link. finalize-deck: review.finalize() applies the changes kept on the hub review
+page and sets Status = Final, which sends the final files.
 
 The Airtable automation "Deck request: plan and build" no longer uses Airtable AI. It clears the old
 plan and research, sets Status = Building and fires this build. When the row has no plan, Claude
@@ -13,6 +18,7 @@ import datetime, json, os, sys, threading, traceback
 
 import run_request as rr
 import ai_steps
+import review
 
 NOTES = []
 # run_request.F plus the request fields only the Claude prompts read
@@ -73,18 +79,24 @@ if __name__ == "__main__":
     if rr.MODE == "check-library":
         os.execv(sys.executable, [sys.executable, os.path.join(rr.HERE, "run_request.py")] + sys.argv[1:])
     try:
+        if rr.MODE == "finalize-deck":
+            review.finalize()                    # requester submitted the review on the hub
+            sys.exit(0)
+        review.reset()                           # a (re)build starts a fresh review
         rtype = rr.get_record(rr.T_REQ, rr.REC).get("fldQahyDEnFyMIm87") or ""
         if rtype == "Custom outline":
             import custom_deck                   # requester wrote the outline on the hub
             custom_deck.run()
-            sys.exit(0)
-        if rtype == "Convert deck":
+        elif rtype == "Convert deck":
             import convert_deck                  # requester uploaded their own deck on the hub
             convert_deck.run()
-            sys.exit(0)
-        claude_steps()
-        rr.main()
-        add_notes()
+        else:
+            claude_steps()
+            rr.main()
+            add_notes()
+        review.prepare()                         # previews + slide text, then Review ready -> review email
+    except SystemExit:
+        raise
     except Exception:
         err = traceback.format_exc()
         print("Run failed. Details are on the Airtable row.")   # public repo: no request data in logs

@@ -35,8 +35,18 @@ notes; red notes go under OWNER NOTES.
 4. `build.py` then runs `run_request.py`: downloads the master template, the engine zip and the Live
    slide library doc, builds the deck, puts the talking points in the speaker notes, converts to PDF with
    LibreOffice and uploads both files to the row. Status = Ready (or Error with detail).
-5. Airtable automation "Deck ready: email requester" emails the PPTX and PDF, sends Kevin a separate copy,
-   and sets Status = Sent.
+5. `review.py prepare` saves one picture per slide (Slide previews) and the on-slide text (Slide text),
+   then ticks Review ready. Airtable automation "Deck ready: email requester" then emails the requester a
+   link to review the deck on the hub (docs/deckreview) and sets Status = In review. Requesters without a
+   hub link get the files attached, as before.
+6. On the review page each slide gets Looks good or Needs work. A note is rewritten into new slide copy
+   by Claude (Make scenario "evoila Deck Review API"), shown before and after, then kept or undone.
+   Changes can also be typed by hand. "Wrong for everyone" sends the change to Kevin's Library Fixes table.
+   Progress saves as they go (Review state). Submit sets Status = Finalizing.
+7. Airtable automation "Deck review: build the final" fires `finalize-deck`; `review.py finalize` applies
+   the kept changes to the PPTX text (layout, logo and colors untouched), keeps the old files in Earlier
+   versions, writes Review summary and sets Status = Final. "Deck final: email requester" sends the final
+   PowerPoint and PDF, sends Kevin his copy with the changes and library fixes, and sets Status = Sent.
 
 Repo secrets needed: `ANTHROPIC_API_KEY` (Claude API key, with web search enabled in the Claude Console)
 and `AIRTABLE_TOKEN` (Airtable personal access token with `data.records:read` and

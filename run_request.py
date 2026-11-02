@@ -705,6 +705,10 @@ def mark_failed():
         f = get_record(T_REQ, REC)
         if f.get(F["status"]) == "Building":
             update({F["status"]: "Error", F["error"]: "The build server failed or timed out. Clear Status on this row to try again."})
+        elif f.get(F["status"]) == "Finalizing":
+            update({F["status"]: "Error", F["error"]: "The final build failed or timed out. Set Status back to Finalizing to try again."})
+        elif f.get(F["status"]) == "Ready" and not f.get("fldwLW2DoIx9ZVi40"):
+            update({"fldwLW2DoIx9ZVi40": True})   # deck is built; let the review email go out without previews
 
 
 if __name__ == "__main__":

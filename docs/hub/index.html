@@ -395,7 +395,7 @@ function whatsNew(){
   const c=section("new","What's new","Last 14 days");
   const since=Date.now()-14*864e5,items=[];
   D.resources.forEach(r=>{const f=r.fields,t=Date.parse(f.Added||r.createdTime);if(t>=since)items.push([t,"Library",f.Name]);});
-  D.decks.forEach(r=>{const f=r.fields,t=Date.parse(f["Requested at"]||r.createdTime);if(t>=since&&f.Status==="Sent")items.push([t,"Deck",(f["Company you are meeting with"]||"Deck")+" · "+first(f["Your name"])]);});
+  D.decks.forEach(r=>{const f=r.fields,t=Date.parse(f["Requested at"]||r.createdTime);if(t>=since&&(f.Status==="Sent"||f.Status==="Final"))items.push([t,"Deck",(f["Company you are meeting with"]||"Deck")+" · "+first(f["Your name"])]);});
   D.posts.forEach(r=>{const f=r.fields,t=Date.parse(f["Published Date"]||"");if(t>=since&&f.Status==="Published")items.push([t,"Posted",first(f["Author / Profile"])+": "+(f["Post Title Preference"]||"LinkedIn post")]);});
   D.plan.forEach(r=>{const f=r.fields,u=(f["Latest update"]||"").match(/^\[(\d{4}-\d\d-\d\d)\]\s*([^:]+):\s*(.*)/);if(u){const t=Date.parse(u[1]+"T12:00:00");if(t>=since)items.push([t,"Plan",f.Name+": "+u[3].split("\n")[0]]);}});
   items.sort((a,b)=>b[0]-a[0]);
@@ -556,9 +556,14 @@ function resCard(r){
 /* ---------- decks ---------- */
 function decks(me,admin){
   const c=section("decks","Decks","Request a tailored deck, build your own, convert one you made, or reuse one the team made");
-  const list=D.decks.map(d=>d.fields).filter(d=>d.Status==="Sent"||d.Status==="Ready"||d.Status==="Building").slice(0,12);
+  const SHOW=["Sent","Final","Finalizing","In review","Ready","Building"];
+  const list=D.decks.map(d=>Object.assign({_id:d.id},d.fields)).filter(d=>SHOW.includes(d.Status)).slice(0,12);
   const row=el("div","row");row.style.marginBottom="10px";
   const a1=el("a","btn sm","Request a walking deck");a1.href=BASE+"deck/";const a2=el("a","btn ghost sm","Build your own deck");a2.href=BASE+"build/";const a3=el("a","btn ghost sm","Convert your deck");a3.href=BASE+"convert/";a3.onclick=()=>track("Convert deck","Opened converter");row.append(a1,a2,a3);c.appendChild(row);
+  D.decks.filter(d=>d.fields.Status==="In review"&&String(d.fields["Your email"]||"").toLowerCase()===String(D.email).toLowerCase()).forEach(d=>{
+    const w=el("div","row");w.style.cssText="background:#FDF1D8;border-radius:10px;padding:10px 12px;margin-bottom:10px;align-items:center;justify-content:space-between";
+    w.appendChild(el("b",null,"Your deck for "+(d.fields["Company you are meeting with"]||"your meeting")+" is waiting for your review"));
+    const a=el("a","btn sm","Review it");a.href=BASE+"deckreview/?d="+d.id;w.appendChild(a);c.appendChild(w);});
   c.appendChild(el("div","grp","Recent decks"));
   if(!list.length){c.appendChild(el("div","empty","No decks yet."));return c;}
   const ul=el("ul","list");
@@ -567,8 +572,12 @@ function decks(me,admin){
     l.appendChild(el("b",null,(d["Company you are meeting with"]||"Deck #"+d.Request)+(mine?"  · yours":"")));
     l.appendChild(el("span",null,[first(d["Your name"]),d["Who is the audience?"],d["Meeting date"]?"meeting "+fmt(d["Meeting date"]):"built "+fmt(d["Requested at"])].filter(Boolean).join(" · ")));
     const r=el("div","r");const files=[["PPTX",d["Deck PPTX"]],["PDF",d["Deck PDF"]]].filter(x=>x[1]&&x[1][0]);
-    if(files.length)files.forEach(([lab,f],ix)=>{const a=el("a",null,lab);a.href=f[0].url;a.target="_blank";a.rel="noopener";a.onclick=()=>track("Download deck",(d["Company you are meeting with"]||"")+" "+lab);if(ix)r.appendChild(document.createTextNode(" · "));r.appendChild(a);});
-    else r.textContent=d.Status==="Building"?"Building…":(d.Status||"");
+    const rv=BASE+"deckreview/?d="+d._id;
+    if((d.Status==="In review"||d.Status==="Finalizing")&&(mine||admin)){const a=el("a",null,d.Status==="In review"?"Review your deck":"Finishing…");a.href=rv;if(d.Status==="In review")a.style.fontWeight="600";r.appendChild(a);}
+    else if(d.Status==="In review"||d.Status==="Finalizing")r.textContent="In review";
+    else if(files.length&&(d.Status==="Sent"||d.Status==="Final")){files.forEach(([lab,f],ix)=>{const a=el("a",null,lab);a.href=f[0].url;a.target="_blank";a.rel="noopener";a.onclick=()=>track("Download deck",(d["Company you are meeting with"]||"")+" "+lab);if(ix)r.appendChild(document.createTextNode(" · "));r.appendChild(a);});
+      if(mine||admin){r.appendChild(document.createTextNode(" · "));const a=el("a",null,"Details");a.href=rv;r.appendChild(a);}}
+    else r.textContent=d.Status==="Building"||d.Status==="Ready"?"Building…":(d.Status||"");
     li.append(l,r);ul.appendChild(li);});
   c.appendChild(ul);return c;
 }
