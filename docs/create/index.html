@@ -51,7 +51,7 @@ textarea{min-height:170px;resize:vertical}
 <div id="flash"></div>
 <form class="card" id="f">
  <div id="forwho" class="hidden"><label class="l" for="author">Post for</label>
- <select id="author"><option value="">Pick an author</option><option>Glen Tindal</option><option>Mark Maisano</option><option>Andrew Hald</option></select>
+ <select id="author"><option value="">Pick an author</option><option>Glen Tindal</option><option>Mark Maisano</option><option>Andrew Hald</option><option>Tom MacKay</option></select>
  <p class="hint">It lands in their review queue as a self-serve post. They read it and post it, or decline it.</p></div>
  <label class="l" for="topic">Topic</label>
  <input type="text" id="topic" maxlength="140" placeholder="e.g. Why we don't start VCF 9 migrations with NSX">
@@ -91,7 +91,7 @@ async function call(p,url){const r=await fetch(url||API,{method:"POST",body:new 
   if(r.status===401)throw new Error("auth");if(!r.ok||!j)throw new Error("fail");return j;}
 if(admin){$("#forwho").classList.remove("hidden");$("h1").textContent="Create a post for an author";$(".sub").textContent="Pick the author, give it a topic and a few bullets. It lands in their queue in their voice, with an image. Nothing goes live until they post it.";$("#go").textContent="Write the post";$("#rules").textContent="The draft follows the author's voice and the brand rules: no customer names, no partner-program talk, no numbers you didn't give it.";document.querySelector(".links a+a").textContent="Review";
   const pre=new URLSearchParams(location.search).get("for");if(pre)$("#author").value=pre;}
-if(!token)flash("Open this page from your personal hub link. Creating posts is for Glen, Mark and Andrew.","err");
+if(!token)flash("Open this page from your personal hub link. Creating posts is for Glen, Mark, Andrew and Tom.","err");
 $("#f").onsubmit=async e=>{
   e.preventDefault();
   const bullets=$("#bullets").value.trim(),topic=$("#topic").value.trim();
