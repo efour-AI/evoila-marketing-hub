@@ -515,7 +515,19 @@ function taskBody(t,admin,extra,cls){
         await refreshInPlace();const nd=document.querySelector('details[data-key="task-'+t._id+'"]');if(nd)nd.open=true;toast("Saved: "+t.Task);}
       catch(err){btn.disabled=false;btn.textContent="Save update";toast("That didn't save. Try again in a minute.",true);}
     };
-    e.append(row,ta,btn);if(extra)e.appendChild(extra);b.appendChild(e);
+    const cbtn=el("button","btn ghost","Close task");cbtn.title="Closes the task and saves what's in the box as the closing note";
+    cbtn.onclick=async()=>{
+      const note=ta.value.trim();
+      if(!note){ta.placeholder="Add a closing note first: what was done, or why it's being closed.";ta.focus();toast("Add a closing note first.",true);return;}
+      cbtn.disabled=true;btn.disabled=true;cbtn.textContent="Closing…";
+      try{const res=await fetch(ACT,{method:"POST",body:new URLSearchParams({t:token,dev:DEV,a:"taskupdate",id:t._id,status:"Closed",due:"",update:"Closed. "+note})});
+        const j=await res.json().catch(()=>null);if(!res.ok||!j||!j.ok)throw new Error();
+        await refreshInPlace();toast("Closed: "+t.Task);}
+      catch(err){cbtn.disabled=false;btn.disabled=false;cbtn.textContent="Close task";toast("That didn't save. Try again in a minute.",true);}
+    };
+    const brow=el("div");brow.style.display="grid";brow.style.gridTemplateColumns="2fr 1fr";brow.style.gap="6px";brow.append(btn,cbtn);
+    ta.placeholder="What moved? Or, to close it: what was done (added with today's date)";
+    e.append(row,ta,brow);if(extra)e.appendChild(extra);b.appendChild(e);
   }
   return b;
 }
@@ -539,7 +551,6 @@ function filePicker(t,goals,objsOf,initsOf){
   const sel=el("select");const o0=el("option",null,"File under an initiative…");o0.value="";sel.appendChild(o0);
   goals.forEach(g=>objsOf(g).forEach(o=>{const inits=initsOf(o);if(!inits.length)return;const og=document.createElement("optgroup");og.label=o.Name;
     inits.forEach(i=>{const op=el("option",null,i.Name);op.value=i.id;og.appendChild(op);});sel.appendChild(og);}));
-  const done=el("option",null,"Done, or not a marketing task (close it)");done.value="close";sel.appendChild(done);
   sel.onchange=async()=>{
     const v=sel.value;if(!v)return;sel.disabled=true;
     try{
