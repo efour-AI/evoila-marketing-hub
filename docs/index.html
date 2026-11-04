@@ -274,7 +274,7 @@ function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className
 function flash(text,kind,stay){const d=$("#flash");d.innerHTML="";if(!text)return;d.appendChild(el("div","msg "+(kind||"ok"),text));if(!stay)window.scrollTo({top:0,behavior:"smooth"});}
 /* Re-render without losing your place: reopen the same initiatives and keep the scroll position. */
 async function refreshInPlace(){const y=window.scrollY;const open=[...document.querySelectorAll("details[data-key][open]")].map(d=>d.dataset.key);
-  await refresh();open.forEach(k=>{const d=document.querySelector('details[data-key="'+k+'"]');if(d)d.open=true;});window.scrollTo(0,y);}
+  await refresh();open.forEach(k=>{const d=document.querySelector('details[data-key="'+k+'"]');if(d)d.open=true;});window.scrollTo({top:y,behavior:"instant"});}
 function fmt(d,opt){if(!d)return"";const x=new Date(String(d).length===10?d+"T12:00:00":d);return x.toLocaleDateString(undefined,opt||{month:"short",day:"numeric"});}
 function days(d){if(!d)return null;const x=new Date(String(d).length===10?d+"T12:00:00":d);return Math.round((x-Date.now())/864e5);}
 function first(n){return String(n||"").split(" ")[0];}
