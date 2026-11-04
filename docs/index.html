@@ -90,6 +90,8 @@ details[open] .iname::before{transform:rotate(90deg)}
 .ibody p{margin:4px 0 8px}
 .update{white-space:pre-wrap;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;margin:6px 0 10px}
 .tasks{list-style:none;margin:6px 0 0;padding:0}
+.tasks li.taskrow{display:block}
+.taskrow summary{cursor:pointer;list-style:none;display:flex;flex-direction:column;gap:2px}.taskrow summary::-webkit-details-marker{display:none}.taskrow summary .t::before{content:"▸ ";color:var(--muted,#888)}.taskrow details[open] summary .t::before{content:"▾ "}.taskrow .tbody{padding:6px 0 4px 14px}.taskrow input[type=date]{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px}
 .tasks li{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px dashed var(--line);font-size:13px}
 .tasks li span.t{flex:1}
 .tasks .small{color:var(--muted);font-size:12px;white-space:nowrap}
@@ -479,27 +481,74 @@ function strategy(admin){
   });
   /* open tasks from meetings that nobody has tied to an initiative yet */
   const linkedIds=new Set();plan.forEach(p=>(p["Action Items"]||[]).forEach(id=>linkedIds.add(id)));
-  const loose=D.items.filter(r=>!linkedIds.has(r.id)&&!(r.fields["Marketing Plan"]||[]).length&&r.fields.Status!=="Closed").map(r=>r.fields)
+  const loose=D.items.filter(r=>!linkedIds.has(r.id)&&!(r.fields["Marketing Plan"]||[]).length&&r.fields.Status!=="Closed").map(r=>Object.assign({_id:r.id},r.fields))
     .sort((a,b)=>String(b["Meeting Date"]||"").localeCompare(String(a["Meeting Date"]||"")));
   if(loose.length){
     const d=el("details","init");d.dataset.key="loose";
     const s=el("summary");s.appendChild(el("span","iname","Tasks not tied to a goal yet"));s.appendChild(el("span","imeta",loose.length+" open task"+(loose.length===1?"":"s")+" from recent meetings"));d.appendChild(s);
     const b=el("div","ibody");const ul=el("ul","tasks");
-    loose.forEach(t=>{const li=el("li");li.appendChild(el("span","t",t.Task));
-      const r=[];if(t.Owner)r.push(t.Owner.map(first).join(", "));if(t["Due Date"])r.push("Due "+fmt(t["Due Date"]));else if(t["Due Note"])r.push(t["Due Note"]);
-      if(t["Source Meeting"])r.push((t["Meeting Date"]?fmt(t["Meeting Date"])+" · ":"")+t["Source Meeting"]);r.push(t.Status||"Open");
-      li.appendChild(el("span","small",r.join(" · ")));ul.appendChild(li);});
+    loose.forEach(t=>ul.appendChild(taskRow(t,admin,filePicker(t,goals,objsOf,initsOf))));
     b.appendChild(ul);d.appendChild(b);
     const w=el("div","goal");w.appendChild(d);c.appendChild(w);
   }
   return c;
 }
 
+const TASK_STATUSES=["Open","In Progress","Blocked","Closed"];
+function taskRow(t,admin,extra){
+  const li=el("li","taskrow");const d=el("details");d.dataset.key="task-"+t._id;
+  const s=el("summary");s.appendChild(el("span","t",t.Task));
+  const r=[];if(t.Owner)r.push(t.Owner.map(first).join(", "));if(t["Due Date"])r.push("Due "+fmt(t["Due Date"]));else if(t["Due Note"])r.push(t["Due Note"]);
+  if(t["Source Meeting"])r.push((t["Meeting Date"]?fmt(t["Meeting Date"])+" · ":"")+t["Source Meeting"]);r.push(t.Status||"Open");
+  s.appendChild(el("span","small",r.join(" · ")));d.appendChild(s);
+  const b=el("div","tbody");
+  [["What to do","Action Detail"],["Why it matters","Context"],["Updates","My Update"],["History from meetings","Updates Log"]].forEach(([lab,f])=>{if(t[f]){b.appendChild(el("div","owners",lab));b.appendChild(el("div","update",t[f]));}});
+  if(admin){
+    const e=el("div","edit");const row=el("div","row");
+    const sel=el("select");TASK_STATUSES.forEach(x=>{const o=el("option",null,x);o.value=x;if(x===(t.Status||"Open"))o.selected=true;sel.appendChild(o);});
+    const due=el("input");due.type="date";due.value=t["Due Date"]||"";due.title="Due date";
+    row.append(sel,due);
+    const ta=el("textarea");ta.placeholder="What moved? (added to Updates with today's date)";
+    const btn=el("button","btn","Save task");
+    btn.onclick=async()=>{
+      const status=sel.value!==(t.Status||"Open")?sel.value:"",dv=due.value!==(t["Due Date"]||"")?due.value:"",upd=ta.value.trim();
+      if(!status&&!dv&&!upd){toast("Change the status or due date, or write an update first.",true);return;}
+      btn.disabled=true;btn.textContent="Saving…";
+      try{const res=await fetch(ACT,{method:"POST",body:new URLSearchParams({t:token,dev:DEV,a:"taskupdate",id:t._id,status,due:dv,update:upd})});
+        const j=await res.json().catch(()=>null);if(!res.ok||!j||!j.ok)throw new Error();
+        await refreshInPlace();const nd=document.querySelector('details[data-key="task-'+t._id+'"]');if(nd)nd.open=true;toast("Saved: "+t.Task);}
+      catch(err){btn.disabled=false;btn.textContent="Save task";toast("That didn't save. Try again in a minute.",true);}
+    };
+    e.append(row,ta,btn);b.appendChild(e);
+    if(extra)b.appendChild(extra);
+  }
+  d.appendChild(b);li.appendChild(d);return li;
+}
+function toast(msg,err){const t=el("div","msg "+(err?"err":"ok"),msg);Object.assign(t.style,{position:"fixed",bottom:"20px",left:"50%",transform:"translateX(-50%)",zIndex:999,maxWidth:"90vw",boxShadow:"0 4px 16px rgba(0,0,0,.15)"});document.body.appendChild(t);setTimeout(()=>t.remove(),4500);}
+/* admin: file a loose task under an initiative, or close it */
+function filePicker(t,goals,objsOf,initsOf){
+  const w=el("div","row");w.style.marginTop="6px";
+  const sel=el("select");const o0=el("option",null,"File under an initiative…");o0.value="";sel.appendChild(o0);
+  goals.forEach(g=>objsOf(g).forEach(o=>{const inits=initsOf(o);if(!inits.length)return;const og=document.createElement("optgroup");og.label=o.Name;
+    inits.forEach(i=>{const op=el("option",null,i.Name);op.value=i.id;og.appendChild(op);});sel.appendChild(og);}));
+  const done=el("option",null,"Done, or not a marketing task (close it)");done.value="close";sel.appendChild(done);
+  sel.onchange=async()=>{
+    const v=sel.value;if(!v)return;sel.disabled=true;
+    try{
+      const r=await fetch(ACT,{method:"POST",body:new URLSearchParams(v==="close"?{t:token,dev:DEV,a:"closetask",id:t._id}:{t:token,dev:DEV,a:"linktask",id:t._id,plan:v})});
+      const j=await r.json().catch(()=>null);if(!r.ok||!j||!j.ok)throw new Error();
+      if(v!=="close"){const k="init-"+v;await refreshInPlace();const d=document.querySelector('details[data-key="'+k+'"]');if(d)d.open=true;}
+      else await refreshInPlace();
+      toast(v==="close"?"Closed: "+t.Task:"Filed under "+sel.options[sel.selectedIndex].text+": "+t.Task);
+    }catch(e){sel.disabled=false;sel.value="";toast("That didn't save. Try again in a minute.",true);}
+  };
+  w.appendChild(sel);return w;
+}
 function initiative(i,items,admin){
   const d=el("details","init");d.dataset.key="init-"+i.id;
   const s=el("summary");s.appendChild(el("span","iname",i.Name));s.appendChild(pill(i.Status));
   const meta=[];if(i.Owner)meta.push(i.Owner.map(first).join(", "));if(i.Due){const dd=days(i.Due);meta.push("Due "+fmt(i.Due)+(dd!=null&&dd<0&&i.Status!=="Done"?" (overdue)":""));}
-  const linked=(i["Action Items"]||[]).map(id=>items[id]).filter(Boolean);
+  const linked=(i["Action Items"]||[]).map(id=>items[id]?Object.assign({_id:id},items[id]):null).filter(Boolean);
   const open=linked.filter(t=>t.Status!=="Closed").length;if(linked.length)meta.push(open+" open task"+(open===1?"":"s"));
   if(meta.length)s.appendChild(el("span","imeta",meta.join(" · ")));
   d.appendChild(s);
@@ -510,10 +559,7 @@ function initiative(i,items,admin){
   if(linked.some(t=>t.Status!=="Closed")){
     b.appendChild(el("div","owners","Open tasks"));
     const ul=el("ul","tasks");
-    linked.filter(t=>t.Status!=="Closed").forEach(t=>{
-      const li=el("li");li.appendChild(el("span","t",(t.Status==="Closed"?"✓ ":"")+t.Task));
-      const r=[];if(t.Owner)r.push(t.Owner.map(first).join(", "));if(t["Due Date"])r.push(fmt(t["Due Date"]));else if(t["Due Note"])r.push(t["Due Note"]);r.push(t.Status||"Open");
-      li.appendChild(el("span","small",r.join(" · ")));ul.appendChild(li);});
+    linked.filter(t=>t.Status!=="Closed").forEach(t=>ul.appendChild(taskRow(t,admin)));
     b.appendChild(ul);
   }
   if(admin){
