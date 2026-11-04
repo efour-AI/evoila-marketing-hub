@@ -484,32 +484,28 @@ function strategy(admin){
   const loose=D.items.filter(r=>!linkedIds.has(r.id)&&!(r.fields["Marketing Plan"]||[]).length&&r.fields.Status!=="Closed").map(r=>Object.assign({_id:r.id},r.fields))
     .sort((a,b)=>String(b["Meeting Date"]||"").localeCompare(String(a["Meeting Date"]||"")));
   if(loose.length){
-    const d=el("details","init");d.dataset.key="loose";
-    const s=el("summary");s.appendChild(el("span","iname","Tasks not tied to a goal yet"));s.appendChild(el("span","imeta",loose.length+" open task"+(loose.length===1?"":"s")+" from recent meetings"));d.appendChild(s);
-    const b=el("div","ibody");const ul=el("ul","tasks");
-    loose.forEach(t=>ul.appendChild(taskRow(t,admin,filePicker(t,goals,objsOf,initsOf))));
-    b.appendChild(ul);d.appendChild(b);
-    const w=el("div","goal");w.appendChild(d);c.appendChild(w);
+    const w=el("div","goal");w.id="loose-tasks";
+    const top=el("div","objhead");const gt=el("div");gt.appendChild(el("h3",null,"Tasks not tied to a goal yet"));top.appendChild(gt);w.appendChild(top);
+    w.appendChild(el("p","objsum",loose.length+" open task"+(loose.length===1?"":"s")+" from recent meetings."+(admin?" Open one to update it, or file it under the initiative it belongs to.":"")));
+    const box=el("div","inits");loose.forEach(t=>box.appendChild(taskCard(t,admin,admin?filePicker(t,goals,objsOf,initsOf):null)));
+    w.appendChild(box);c.appendChild(w);
   }
   return c;
 }
 
 const TASK_STATUSES=["Open","In Progress","Blocked","Closed"];
-function taskRow(t,admin,extra){
-  const li=el("li","taskrow");const d=el("details");d.dataset.key="task-"+t._id;
-  const s=el("summary");s.appendChild(el("span","t",t.Task));
-  const r=[];if(t.Owner)r.push(t.Owner.map(first).join(", "));if(t["Due Date"])r.push("Due "+fmt(t["Due Date"]));else if(t["Due Note"])r.push(t["Due Note"]);
-  if(t["Source Meeting"])r.push((t["Meeting Date"]?fmt(t["Meeting Date"])+" · ":"")+t["Source Meeting"]);r.push(t.Status||"Open");
-  s.appendChild(el("span","small",r.join(" · ")));d.appendChild(s);
-  const b=el("div","tbody");
-  [["What to do","Action Detail"],["Why it matters","Context"],["Updates","My Update"],["History from meetings","Updates Log"]].forEach(([lab,f])=>{if(t[f]){b.appendChild(el("div","owners",lab));b.appendChild(el("div","update",t[f]));}});
+function taskMeta(t){const r=[];if(t.Owner)r.push(t.Owner.map(first).join(", "));if(t["Due Date"]){const dd=days(t["Due Date"]);r.push("Due "+fmt(t["Due Date"])+(dd!=null&&dd<0?" (overdue)":""));}else if(t["Due Note"])r.push(t["Due Note"]);
+  if(t["Source Meeting"])r.push("From "+(t["Meeting Date"]?fmt(t["Meeting Date"])+" · ":"")+t["Source Meeting"]);return r;}
+function taskBody(t,admin,extra,cls){
+  const b=el("div",cls);
+  [["What to do","Action Detail"],["Why it matters","Context"],["Latest update","My Update"],["History from meetings","Updates Log"]].forEach(([lab,f])=>{if(t[f]){b.appendChild(el("div","owners",lab));b.appendChild(el("div","update",t[f]));}});
   if(admin){
     const e=el("div","edit");const row=el("div","row");
     const sel=el("select");TASK_STATUSES.forEach(x=>{const o=el("option",null,x);o.value=x;if(x===(t.Status||"Open"))o.selected=true;sel.appendChild(o);});
-    const due=el("input");due.type="date";due.value=t["Due Date"]||"";due.title="Due date";
-    row.append(sel,due);
-    const ta=el("textarea");ta.placeholder="What moved? (added to Updates with today's date)";
-    const btn=el("button","btn","Save task");
+    const due=el("input");due.type="date";due.value=t["Due Date"]||"";due.title="Due date";due.style.maxWidth="190px";
+    row.style.display="flex";row.style.gap="6px";row.append(sel,due);
+    const ta=el("textarea");ta.placeholder="What moved? (added to Latest update with today's date)";
+    const btn=el("button","btn","Save update");
     btn.onclick=async()=>{
       const status=sel.value!==(t.Status||"Open")?sel.value:"",dv=due.value!==(t["Due Date"]||"")?due.value:"",upd=ta.value.trim();
       if(!status&&!dv&&!upd){toast("Change the status or due date, or write an update first.",true);return;}
@@ -517,12 +513,24 @@ function taskRow(t,admin,extra){
       try{const res=await fetch(ACT,{method:"POST",body:new URLSearchParams({t:token,dev:DEV,a:"taskupdate",id:t._id,status,due:dv,update:upd})});
         const j=await res.json().catch(()=>null);if(!res.ok||!j||!j.ok)throw new Error();
         await refreshInPlace();const nd=document.querySelector('details[data-key="task-'+t._id+'"]');if(nd)nd.open=true;toast("Saved: "+t.Task);}
-      catch(err){btn.disabled=false;btn.textContent="Save task";toast("That didn't save. Try again in a minute.",true);}
+      catch(err){btn.disabled=false;btn.textContent="Save update";toast("That didn't save. Try again in a minute.",true);}
     };
-    e.append(row,ta,btn);b.appendChild(e);
-    if(extra)b.appendChild(extra);
+    e.append(row,ta,btn);if(extra)e.appendChild(extra);b.appendChild(e);
   }
-  d.appendChild(b);li.appendChild(d);return li;
+  return b;
+}
+/* a task as a full card, same look as an initiative */
+function taskCard(t,admin,extra){
+  const d=el("details","init");d.dataset.key="task-"+t._id;
+  const s=el("summary");s.appendChild(el("span","iname",t.Task));s.appendChild(pill(t.Status||"Open"));
+  s.appendChild(el("span","imeta",taskMeta(t).join(" · ")));d.appendChild(s);
+  d.appendChild(taskBody(t,admin,extra,"ibody"));return d;
+}
+/* a task inside an initiative: compact row that opens */
+function taskRow(t,admin){
+  const li=el("li","taskrow");const d=el("details");d.dataset.key="task-"+t._id;
+  const s=el("summary");s.appendChild(el("span","t",t.Task));s.appendChild(el("span","small",taskMeta(t).concat([t.Status||"Open"]).join(" · ")));d.appendChild(s);
+  d.appendChild(taskBody(t,admin,null,"tbody"));li.appendChild(d);return li;
 }
 function toast(msg,err){const t=el("div","msg "+(err?"err":"ok"),msg);Object.assign(t.style,{position:"fixed",bottom:"20px",left:"50%",transform:"translateX(-50%)",zIndex:999,maxWidth:"90vw",boxShadow:"0 4px 16px rgba(0,0,0,.15)"});document.body.appendChild(t);setTimeout(()=>t.remove(),4500);}
 /* admin: file a loose task under an initiative, or close it */
