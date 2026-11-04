@@ -526,7 +526,7 @@ function isCloseText(x){return /^Closed\b/i.test(x);}
 function closedEntry(t){if(t.Status!=="Closed")return null;const es=taskEntries(t);if(!es.length)return null;
   const c=es.find(e=>isCloseText(e.text))||es[0];
   const extra=es.filter(e=>e.date===c.date&&e!==c).map(e=>e.text.replace(/^Sync note:\s*/,"")).filter(x=>!isCloseText(x));
-  const own=isCloseText(c.text)?c.text.replace(/^Closed\.?\s*/,""):c.text;
+  const own=c.text.replace(/^Closed\.\s*/,"");
   return {date:c.date,who:c.who,text:"Closed. "+[own].concat(extra).filter(Boolean).join(" · ")};}
 function jumpToTask(id){const d=document.querySelector('details[data-key="task-'+id+'"]');if(!d)return;
   let p=d.parentElement;while(p){if(p.tagName==="DETAILS")p.open=true;p=p.parentElement;}d.open=true;d.scrollIntoView({block:"start",behavior:"smooth"});}
