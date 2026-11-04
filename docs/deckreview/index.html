@@ -176,6 +176,7 @@ function canRework(){return F[K.type]==="Custom outline"&&PLAN&&Array.isArray(PL
 function picked(n){const e=(OUT.slides||[])[Number(n)-2];return n==1?{layout:"cover"}:(e||null);}
 function built(n){return ((PLAN.slides||[])[Number(n)-1]||{}).layout||"";}
 function isResearch(n){const e=picked(n);return !!(e&&e.layout==="research");}
+function stateJSON(){return JSON.stringify(ST,(k,v)=>k==="inline"||k==="open"||k==="reworkError"?undefined:v);}
 function slideState(n){return ST.slides[n]||(ST.slides[n]={});}
 function boxesOf(n){const s=TEXT.find(x=>String(x.n)===String(n));return s?s.boxes:[];}
 
@@ -188,6 +189,7 @@ async function start(){
     try{TEXT=JSON.parse(F[K.text]||"[]")}catch(e){TEXT=[]}
     try{ST=JSON.parse(F[K.state]||"{}")}catch(e){ST={}}
     if(!ST.slides)ST.slides={};
+    Object.values(ST.slides).forEach(v=>{if(v){delete v.inline;delete v.open;}});
     parseExtra();
     render();
   }catch(e){fail(e.message)}
@@ -256,7 +258,7 @@ function save(now){
   clearTimeout(saveTimer);$("#saved")&&($("#saved").textContent="Saving…");
   saveTimer=setTimeout(async()=>{
     ST.updated=new Date().toISOString();ST.by=ME;
-    try{await callJSON({a:"decksave",id:DECK,state:JSON.stringify(ST,(k,v)=>k==="inline"||k==="open"?undefined:v)});$("#saved")&&($("#saved").textContent="Saved");}
+    try{await callJSON({a:"decksave",id:DECK,state:stateJSON()});$("#saved")&&($("#saved").textContent="Saved");}
     catch(e){$("#saved")&&($("#saved").textContent="Not saved, check your connection");}
   },now?0:1200);
 }
@@ -433,7 +435,7 @@ async function submitRework(){
   clearTimeout(saveTimer);
   document.querySelectorAll(".bar .btn").forEach(b=>b.disabled=true);
   ST.updated=new Date().toISOString();ST.by=ME;ST.mode="rework";delete ST.reworkError;
-  try{await callJSON({a:"decksubmit",id:DECK,state:JSON.stringify(ST)});track("Requested slide rebuild");F[K.status]="Finalizing";window.scrollTo(0,0);render();}
+  try{await callJSON({a:"decksubmit",id:DECK,state:stateJSON()});track("Requested slide rebuild");F[K.status]="Finalizing";window.scrollTo(0,0);render();}
   catch(e){delete ST.mode;flash("Couldn't send that just now. Your requests are saved; try again in a minute.","err");drawBar();}
 }
 function comparePanel(s,x){
@@ -476,7 +478,7 @@ async function submit(){
   clearTimeout(saveTimer);
   document.querySelectorAll(".bar .btn.primary").forEach(b=>{b.disabled=true;b.textContent="Submitting…";});
   ST.updated=new Date().toISOString();ST.by=ME;ST.submitted=ST.updated;
-  try{await callJSON({a:"decksubmit",id:DECK,state:JSON.stringify(ST)});track("Submitted deck review");F[K.status]="Finalizing";window.scrollTo(0,0);render();}
+  try{await callJSON({a:"decksubmit",id:DECK,state:stateJSON()});track("Submitted deck review");F[K.status]="Finalizing";window.scrollTo(0,0);render();}
   catch(e){flash("Couldn't submit just now. Your review is saved; try Submit again in a minute.","err");drawBar();}
 }
 start();

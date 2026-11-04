@@ -240,6 +240,7 @@ def rework(f, state):
         outline = json.loads(f.get(CD.F_OUTLINE) or "{}")
     except Exception:
         outline = {}
+    os.makedirs(rr.WORK, exist_ok=True)
     slides = state.get("slides") or {}
     meta = CD.build_meta(f)
     meta["deck_title"] = spec.get("title") or ""

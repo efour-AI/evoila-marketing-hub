@@ -681,13 +681,15 @@ function resCard(r){
 }
 
 /* ---------- decks ---------- */
+const DECKS_SINCE="2026-11-04T22:00:00Z";   /* decks requested before the new review process are not listed */
 function decks(me,admin){
   const c=section("decks","Decks","Request a tailored deck, build your own, convert one you made, or reuse one the team made");
   const SHOW=["Sent","Final","Finalizing","In review","Ready","Building"];
-  const list=D.decks.map(d=>Object.assign({_id:d.id},d.fields)).filter(d=>SHOW.includes(d.Status)).slice(0,12);
+  const fresh=d=>Date.parse(d["Requested at"]||d.Created||0)>=Date.parse(DECKS_SINCE);
+  const list=D.decks.map(d=>Object.assign({_id:d.id},d.fields)).filter(d=>SHOW.includes(d.Status)&&fresh(d)).slice(0,12);
   const row=el("div","row");row.style.marginBottom="10px";
   const a1=el("a","btn sm","Request a walking deck");a1.href=BASE+"deck/";const a2=el("a","btn ghost sm","Build your own deck");a2.href=BASE+"build/";const a3=el("a","btn ghost sm","Convert your deck");a3.href=BASE+"convert/";a3.onclick=()=>track("Convert deck","Opened converter");row.append(a1,a2,a3);c.appendChild(row);
-  D.decks.filter(d=>d.fields.Status==="In review"&&String(d.fields["Your email"]||"").toLowerCase()===String(D.email).toLowerCase()).forEach(d=>{
+  D.decks.filter(d=>fresh(d.fields)&&d.fields.Status==="In review"&&String(d.fields["Your email"]||"").toLowerCase()===String(D.email).toLowerCase()).forEach(d=>{
     const w=el("div","row");w.style.cssText="background:#FDF1D8;border-radius:10px;padding:10px 12px;margin-bottom:10px;align-items:center;justify-content:space-between";
     w.appendChild(el("b",null,"Your deck for "+(d.fields["Company you are meeting with"]||"your meeting")+" is waiting for your review"));
     const a=el("a","btn sm","Review it");a.href=BASE+"deckreview/?d="+d.id;w.appendChild(a);c.appendChild(w);});
