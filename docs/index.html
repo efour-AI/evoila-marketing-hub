@@ -269,7 +269,10 @@ else{const s=load("evoila_hub");if(s){mode=s.slice(0,1);token=s.slice(2);}}
 
 const $=s=>document.querySelector(s);
 function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className=cls;if(text!=null)e.textContent=text;return e;}
-function flash(text,kind){const d=$("#flash");d.innerHTML="";if(!text)return;d.appendChild(el("div","msg "+(kind||"ok"),text));window.scrollTo({top:0,behavior:"smooth"});}
+function flash(text,kind,stay){const d=$("#flash");d.innerHTML="";if(!text)return;d.appendChild(el("div","msg "+(kind||"ok"),text));if(!stay)window.scrollTo({top:0,behavior:"smooth"});}
+/* Re-render without losing your place: reopen the same initiatives and keep the scroll position. */
+async function refreshInPlace(){const y=window.scrollY;const open=[...document.querySelectorAll("details[data-key][open]")].map(d=>d.dataset.key);
+  await refresh();open.forEach(k=>{const d=document.querySelector('details[data-key="'+k+'"]');if(d)d.open=true;});window.scrollTo(0,y);}
 function fmt(d,opt){if(!d)return"";const x=new Date(String(d).length===10?d+"T12:00:00":d);return x.toLocaleDateString(undefined,opt||{month:"short",day:"numeric"});}
 function days(d){if(!d)return null;const x=new Date(String(d).length===10?d+"T12:00:00":d);return Math.round((x-Date.now())/864e5);}
 function first(n){return String(n||"").split(" ")[0];}
@@ -474,11 +477,26 @@ function strategy(admin){
     });
     c.appendChild(gd);
   });
+  /* open tasks from meetings that nobody has tied to an initiative yet */
+  const linkedIds=new Set();plan.forEach(p=>(p["Action Items"]||[]).forEach(id=>linkedIds.add(id)));
+  const loose=D.items.filter(r=>!linkedIds.has(r.id)&&!(r.fields["Marketing Plan"]||[]).length&&r.fields.Status!=="Closed").map(r=>r.fields)
+    .sort((a,b)=>String(b["Meeting Date"]||"").localeCompare(String(a["Meeting Date"]||"")));
+  if(loose.length){
+    const d=el("details","init");d.dataset.key="loose";
+    const s=el("summary");s.appendChild(el("span","iname","Tasks not tied to a goal yet"));s.appendChild(el("span","imeta",loose.length+" open task"+(loose.length===1?"":"s")+" from recent meetings"));d.appendChild(s);
+    const b=el("div","ibody");const ul=el("ul","tasks");
+    loose.forEach(t=>{const li=el("li");li.appendChild(el("span","t",t.Task));
+      const r=[];if(t.Owner)r.push(t.Owner.map(first).join(", "));if(t["Due Date"])r.push("Due "+fmt(t["Due Date"]));else if(t["Due Note"])r.push(t["Due Note"]);
+      if(t["Source Meeting"])r.push((t["Meeting Date"]?fmt(t["Meeting Date"])+" · ":"")+t["Source Meeting"]);r.push(t.Status||"Open");
+      li.appendChild(el("span","small",r.join(" · ")));ul.appendChild(li);});
+    b.appendChild(ul);d.appendChild(b);
+    const w=el("div","goal");w.appendChild(d);c.appendChild(w);
+  }
   return c;
 }
 
 function initiative(i,items,admin){
-  const d=el("details","init");
+  const d=el("details","init");d.dataset.key="init-"+i.id;
   const s=el("summary");s.appendChild(el("span","iname",i.Name));s.appendChild(pill(i.Status));
   const meta=[];if(i.Owner)meta.push(i.Owner.map(first).join(", "));if(i.Due){const dd=days(i.Due);meta.push("Due "+fmt(i.Due)+(dd!=null&&dd<0&&i.Status!=="Done"?" (overdue)":""));}
   const linked=(i["Action Items"]||[]).map(id=>items[id]).filter(Boolean);
@@ -507,7 +525,7 @@ function initiative(i,items,admin){
       const status=sel.value!==(i.Status||"Not started")?sel.value:"";const upd=ta.value.trim();
       if(!status&&!upd){flash("Change the status or write an update first.","err");return;}
       btn.disabled=true;btn.textContent="Saving…";
-      try{await call({a:"plan",id:i.id,status,update:upd});flash("Saved: "+i.Name);await refresh();}
+      try{await call({a:"plan",id:i.id,status,update:upd});await refreshInPlace();const k=document.querySelector('details[data-key="init-'+i.id+'"] .edit');if(k){const n=el("div","msg ok","Saved.");n.style.marginTop="8px";k.appendChild(n);setTimeout(()=>n.remove(),4000);}}
       catch(err){flash("That didn't save. Try again in a minute.","err");btn.disabled=false;btn.textContent="Save update";}
     };
     const row=el("div","row");row.append(sel);e.append(row,ta,btn);b.appendChild(e);
@@ -716,11 +734,12 @@ function requests(me,admin){
 
 /* ---------- usage (admins) ---------- */
 function usage(){
-  const c=section("usage","Hub usage","Last 30 days · admins only");
+  const c=section("usage","Hub usage","Last 30 days · admins only · Kevin's own testing not counted");
+  const TEAM=PEOPLE.filter(p=>p!=="Kevin O'Brien");
   const act=D.activity.map(a=>Object.assign({id:a.id},a.fields));
   const t=el("table","people");const hr=el("tr");["","Visits","Last visit","Files opened","Decks","Bar"].forEach((x,i)=>hr.appendChild(el("th",null,i===5?"":x)));t.appendChild(hr);
-  const max=Math.max(1,...PEOPLE.map(p=>act.filter(a=>a.Person===p&&a.Type==="Visit").length));
-  PEOPLE.forEach(p=>{const mine=act.filter(a=>a.Person===p);const v=mine.filter(a=>a.Type==="Visit");
+  const max=Math.max(1,...TEAM.map(p=>act.filter(a=>a.Person===p&&a.Type==="Visit").length));
+  TEAM.forEach(p=>{const mine=act.filter(a=>a.Person===p);const v=mine.filter(a=>a.Type==="Visit");
     const last=mine.map(a=>a.When).sort().pop();
     const tr=el("tr");tr.appendChild(el("td",null,first(p)));tr.appendChild(el("td",null,String(v.length)));
     tr.appendChild(el("td",null,last?fmt(last,{month:"short",day:"numeric"}):"Not yet"));
