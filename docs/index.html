@@ -279,7 +279,7 @@ function fmt(d,opt){if(!d)return"";const x=new Date(String(d).length===10?d+"T12
 function days(d){if(!d)return null;const x=new Date(String(d).length===10?d+"T12:00:00":d);return Math.round((x-Date.now())/864e5);}
 function first(n){return String(n||"").split(" ")[0];}
 function num(n){return n==null?"–":Number(n).toLocaleString();}
-function pill(s){const p=el("span","pill",s||"Not started");p.className="pill"+({"On track":" on","At risk":" risk","Blocked":" block","Done":" done"}[s]||"");return p;}
+function pill(s){const p=el("span","pill",s||"Not started");p.className="pill"+({"On track":" on","At risk":" risk","Blocked":" block","Done":" done","Closed":" done","In Progress":" on"}[s]||"");return p;}
 function section(id,title,note){const s=el("section","card");s.id=id;const hd=el("h2",null,title);if(note)hd.appendChild(el("span","note",note));s.appendChild(hd);return s;}
 async function call(params){
   const r=await fetch(API,{method:"POST",body:new URLSearchParams(Object.assign({t:token,dev:DEV},params))});
@@ -402,10 +402,14 @@ function whatsNew(){
   D.decks.forEach(r=>{const f=r.fields,t=Date.parse(f["Requested at"]||r.createdTime);if(t>=since&&(f.Status==="Sent"||f.Status==="Final"))items.push([t,"Deck",(f["Company you are meeting with"]||"Deck")+" · "+first(f["Your name"])]);});
   D.posts.forEach(r=>{const f=r.fields,t=Date.parse(f["Published Date"]||"");if(t>=since&&f.Status==="Published")items.push([t,"Posted",first(f["Author / Profile"])+": "+(f["Post Title Preference"]||"LinkedIn post")]);});
   D.plan.forEach(r=>{const f=r.fields,u=(f["Latest update"]||"").match(/^\[(\d{4}-\d\d-\d\d)\]\s*([^:]+):\s*(.*)/);if(u){const t=Date.parse(u[1]+"T12:00:00");if(t>=since)items.push([t,"Plan",f.Name+": "+u[3].split("\n")[0]]);}});
+  D.items.forEach(r=>{const f=r.fields;taskEntries(f).forEach(e=>{const t=Date.parse(e.date+"T12:00:00");if(t<since)return;
+    const done=/^Closed\b/.test(e.text);const note=e.text.replace(/^Closed\.?\s*/,"").split("\n")[0];
+    items.push([t,done?"Done":"Task",first(e.who)+(done?" closed ":" on ")+"\u201c"+f.Task+"\u201d"+(note?": "+note:""),r.id]);});});
   items.sort((a,b)=>b[0]-a[0]);
-  if(!items.length){c.appendChild(el("div","empty","Quiet fortnight. New decks, posts and library files show up here."));return c;}
+  if(!items.length){c.appendChild(el("div","empty","Quiet fortnight. New decks, posts, task updates and library files show up here."));return c;}
   const ul=el("ul","feed");
-  items.slice(0,8).forEach(([t,w,txt])=>{const li=el("li");li.append(el("span","d",fmt(new Date(t).toISOString())),el("span","w",w),el("span",null,txt));ul.appendChild(li);});
+  items.slice(0,10).forEach(([t,w,txt,id])=>{const li=el("li");li.append(el("span","d",fmt(new Date(t).toISOString())),el("span","w",w),el("span",null,txt));
+    if(id){li.style.cursor="pointer";li.title="Open this task";li.onclick=()=>jumpToTask(id);}ul.appendChild(li);});
   c.appendChild(ul);return c;
 }
 
@@ -490,10 +494,29 @@ function strategy(admin){
     const box=el("div","inits");loose.forEach(t=>box.appendChild(taskCard(t,admin,admin?filePicker(t,goals,objsOf,initsOf):null)));
     w.appendChild(box);c.appendChild(w);
   }
+  /* recently completed */
+  const cutoff=Date.now()-21*864e5;
+  const closed=D.items.filter(r=>r.fields.Status==="Closed").map(r=>{const f=Object.assign({_id:r.id},r.fields);const ce=closedEntry(f);return [ce?Date.parse(ce.date+"T12:00:00"):0,f,ce];})
+    .filter(([t])=>t>=cutoff).sort((a,b)=>b[0]-a[0]);
+  if(closed.length){
+    const w=el("div","goal");w.id="done-tasks";
+    const top=el("div","objhead");const gt=el("div");gt.appendChild(el("h3",null,"Recently completed"));top.appendChild(gt);w.appendChild(top);
+    w.appendChild(el("p","objsum",closed.length+" task"+(closed.length===1?"":"s")+" closed in the last three weeks."));
+    const box=el("div","inits");
+    closed.forEach(([t,f,ce])=>{const card=taskCard(f,admin,null);const note=ce.text.replace(/^Closed\.?\s*/,"");
+      card.querySelector(".imeta").textContent="Closed "+fmt(ce.date)+" by "+first(ce.who)+(note?" · "+note.split("\n")[0]:"");box.appendChild(card);});
+    w.appendChild(box);c.appendChild(w);
+  }
   return c;
 }
 
 const TASK_STATUSES=["Open","In Progress","Blocked","Closed"];
+/* dated entries in a task's My Update, newest first: [{date,who,text}] */
+function taskEntries(t){const out=[];const re=/\[(\d{4}-\d\d-\d\d)\]\s*([^:\n]+):\s*([\s\S]*?)(?=\n\s*\n\[\d{4}-\d\d-\d\d\]|$)/g;let m;
+  while((m=re.exec(t["My Update"]||""))){out.push({date:m[1],who:m[2].trim(),text:m[3].trim()});}return out;}
+function closedEntry(t){return taskEntries(t).find(e=>/^Closed\b/.test(e.text))||null;}
+function jumpToTask(id){const d=document.querySelector('details[data-key="task-'+id+'"]');if(!d)return;
+  let p=d.parentElement;while(p){if(p.tagName==="DETAILS")p.open=true;p=p.parentElement;}d.open=true;d.scrollIntoView({block:"start",behavior:"smooth"});}
 function taskMeta(t){const r=[];if(t.Owner)r.push(t.Owner.map(first).join(", "));if(t["Due Date"]){const dd=days(t["Due Date"]);r.push("Due "+fmt(t["Due Date"])+(dd!=null&&dd<0?" (overdue)":""));}else if(t["Due Note"])r.push(t["Due Note"]);
   if(t["Source Meeting"])r.push("From "+(t["Meeting Date"]?fmt(t["Meeting Date"])+" · ":"")+t["Source Meeting"]);return r;}
 function taskBody(t,admin,extra,cls){
