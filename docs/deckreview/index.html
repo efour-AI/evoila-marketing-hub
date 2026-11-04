@@ -65,6 +65,16 @@ textarea{width:100%;font:inherit;font-size:14.5px;line-height:1.5;color:var(--in
 .chk{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.4}
 .chk input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--indigo)}
 .hint{font-size:12.5px;color:var(--muted)}
+.made{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}
+.made b{color:var(--ink);font-weight:600}
+.rw{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
+.rw .btn{font-size:13px;padding:7px 13px;min-height:36px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chips button{font:inherit;font-size:13px;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:99px;padding:6px 12px;cursor:pointer}
+.chips button.on{background:var(--ink);border-color:var(--ink);color:var(--card)}
+.badge.rw{background:#E8E4FB;color:#2B2754}
+.row2{display:flex;gap:10px;flex-wrap:wrap}.row2>div{flex:1 1 160px}
+.panel select,.panel input[type=text]{font:inherit;font-size:14px;border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%;box-sizing:border-box;background:var(--card);color:var(--ink)}
 .cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
 .cmp>div{border-radius:10px;padding:10px 12px;font-size:14px;line-height:1.45}
 .cmp .b{background:var(--soft)}
@@ -120,7 +130,7 @@ const API="https://hook.us2.make.com/o28rqytj8ifgm1o2tckavp2194d8jbqt";
 const DEV=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)?"phone":"desktop";
 const K={email:"fldsh54IoNqdFDRM4",name:"fldXM03WhdelyP62D",company:"fldh6PvIYkHgR7m8o",audience:"fldG2ZAIhyN5KdFAy",framing:"fldCEoEULzI0Px2BR",
  date:"fldehcJBsAzui66pz",status:"fldxQZCQ8OHA7sOTa",pptx:"fldxwsdZxpMOq0NiL",pdf:"fldNi5sd61xg5OhcL",prev:"fldOBqD7uE1aMkL55",text:"fldBNsStatpXxpyJ2",
- state:"fldLC1a4PfYoqjndK",ready:"fldwLW2DoIx9ZVi40",ver:"fldpELDqobTnQA7CH",earlier:"fld3gYMlUUZdHpSZP",summary:"fldO5Dkw2qtOMjQre",libver:"fldxnMaaGGwVKqcb4",type:"fldQahyDEnFyMIm87"};
+ state:"fldLC1a4PfYoqjndK",ready:"fldwLW2DoIx9ZVi40",ver:"fldpELDqobTnQA7CH",earlier:"fld3gYMlUUZdHpSZP",summary:"fldO5Dkw2qtOMjQre",libver:"fldxnMaaGGwVKqcb4",type:"fldQahyDEnFyMIm87",outline:"fldokfA560RE3GLh4",plan:"fldE9rNtby6JwC4qk"};
 function store(k,v){try{v===undefined?localStorage.removeItem(k):localStorage.setItem(k,v)}catch(e){}}
 function load(k){try{return localStorage.getItem(k)}catch(e){return null}}
 const $=s=>document.querySelector(s);
@@ -149,6 +159,16 @@ async function callJSON(params){const t=await call(params);try{return JSON.parse
 function track(item){try{fetch(API,{method:"POST",keepalive:true,body:new URLSearchParams({t:token,dev:DEV,a:"track",type:"Deck review",item:item})});}catch(e){}}
 
 let F=null,ME="",TEXT=[],ST={slides:{}},saveTimer=null,pollTimer=null;
+const LNAME={auto:"Auto: let us pick",statement:"Big statement",bullets:"Bullet list",columns:"Two or three columns",cards:"Icon cards",
+ numbers:"Big numbers",research:"Research: recent data",steps:"Process or timeline",comparison:"Before and after",quote:"Quote",agenda:"Agenda",
+ closing:"Next steps",cover:"Cover",table:"Table",chart:"Chart",image:"Picture",hub:"Hub and spokes"};
+const RD_LAYOUTS=["statement","bullets","columns","cards","numbers","steps","comparison","agenda","quote"];
+let OUT={},PLAN={};
+function parseExtra(){try{OUT=JSON.parse(F[K.outline]||"{}")}catch(e){OUT={}}try{PLAN=JSON.parse(F[K.plan]||"{}")}catch(e){PLAN={}}}
+function canRework(){return F[K.type]==="Custom outline"&&PLAN&&Array.isArray(PLAN.slides);}
+function picked(n){const e=(OUT.slides||[])[Number(n)-2];return n==1?{layout:"cover"}:(e||null);}
+function built(n){return ((PLAN.slides||[])[Number(n)-1]||{}).layout||"";}
+function isResearch(n){const e=picked(n);return !!(e&&e.layout==="research");}
 function slideState(n){return ST.slides[n]||(ST.slides[n]={});}
 function boxesOf(n){const s=TEXT.find(x=>String(x.n)===String(n));return s?s.boxes:[];}
 
@@ -161,6 +181,7 @@ async function start(){
     try{TEXT=JSON.parse(F[K.text]||"[]")}catch(e){TEXT=[]}
     try{ST=JSON.parse(F[K.state]||"{}")}catch(e){ST={}}
     if(!ST.slides)ST.slides={};
+    parseExtra();
     render();
   }catch(e){fail(e.message)}
 }
@@ -185,6 +206,7 @@ function render(){
   head();clearTimeout(pollTimer);
   const s=F[K.status]||"";
   if(s==="In review")return drawReview();
+  if(s==="Finalizing"&&ST.mode==="rework")return drawWaiting("Rebuilding the slides you asked for","New designs and new research go into the deck now. It comes back here for you to look at in about five minutes. This page refreshes on its own.",true);
   if(s==="Finalizing")return drawWaiting("Building your final deck","Your changes are going into the real slides now. The final PowerPoint and PDF will be in your inbox in about three minutes, and here on this page.",true);
   if(s==="Final"||s==="Sent")return drawFinal();
   if(s==="Error")return drawWaiting("Something went wrong with this deck","Kevin has the details and will follow up. Nothing you saved here is lost.",false);
@@ -195,7 +217,7 @@ function drawWaiting(title,text,poll){
   const a=$("#app");a.innerHTML="";const c=el("div","center");
   const h=el("h2");if(poll){h.appendChild(el("span","spin"));h.appendChild(document.createTextNode(" "));}h.appendChild(document.createTextNode(title));
   c.append(h,el("p",null,text));a.appendChild(c);
-  if(poll)pollTimer=setTimeout(async()=>{try{const j=await callJSON({a:"deckget",id:DECK});F=j.deck.fields||{};try{TEXT=JSON.parse(F[K.text]||"[]")}catch(e){}try{const st=JSON.parse(F[K.state]||"{}");if(st.slides)ST=st;}catch(e){}render();}catch(e){pollTimer=setTimeout(()=>render(),20000)}},20000);
+  if(poll)pollTimer=setTimeout(async()=>{try{const j=await callJSON({a:"deckget",id:DECK});F=j.deck.fields||{};try{TEXT=JSON.parse(F[K.text]||"[]")}catch(e){}try{const st=JSON.parse(F[K.state]||"{}");if(st.slides)ST=st;}catch(e){}parseExtra();render();}catch(e){pollTimer=setTimeout(()=>render(),20000)}},20000);
 }
 
 /* ---------- final view ---------- */
@@ -219,8 +241,9 @@ function drawFinal(){
 /* ---------- review ---------- */
 function count(){
   const n=TEXT.length;let done=0,pending=0;
-  TEXT.forEach(s=>{const x=ST.slides[s.n]||{};if(x.status==="good"||x.kept)done++;else if(x.status==="work")pending++;});
-  return{n,done,pending};
+  let rework=0;
+  TEXT.forEach(s=>{const x=ST.slides[s.n]||{};if(x.status==="good"||x.kept)done++;else if(x.status==="work")pending++;else if(x.status==="redesign"||x.status==="research")rework++;});
+  return{n,done,pending,rework};
 }
 function save(now){
   clearTimeout(saveTimer);$("#saved")&&($("#saved").textContent="Saving…");
@@ -241,6 +264,7 @@ function drawReview(){
     if(pd){const x=el("a","btn","Download PDF");x.href=pd.url;x.target="_blank";dl.appendChild(x);}
     a.appendChild(dl);return;
   }
+  if(ST.reworkError)a.appendChild(el("div","msg err",ST.reworkError));
   const bar=el("div","bar");bar.id="bar";a.appendChild(bar);
   const tools=el("div","tools");
   tools.appendChild(el("span","pill","The pictures show the draft. Changes you keep go into the real slides when you submit."));
@@ -256,11 +280,12 @@ function drawBar(){
   [$("#bar"),$("#foot")].forEach((b,i)=>{if(!b)return;b.innerHTML="";
     const l=el("div");l.appendChild(el("div","count",c.done+" of "+c.n+" slides reviewed"));
     if(i===0){const p=el("div","prog");const bar=el("i");bar.style.width=Math.round(100*c.done/Math.max(1,c.n))+"%";p.appendChild(bar);l.appendChild(p);}
-    const sub=el("div","sub",c.done===c.n?"Everything is reviewed. Submit to build the final deck.":(c.pending?c.pending+" waiting on a note or a Keep. ":"")+"Submit unlocks when every slide is Looks good or has a kept change.");
+    const sub=el("div","sub",c.rework?c.rework+" slide"+(c.rework>1?"s":"")+" waiting to be rebuilt. Rebuild them, look at the new versions, then submit.":c.done===c.n?"Everything is reviewed. Submit to build the final deck.":(c.pending?c.pending+" waiting on a note or a Keep. ":"")+"Submit unlocks when every slide is Looks good or has a kept change.");
     l.appendChild(sub);
     const r=el("div");r.style.display="flex";r.style.gap="12px";r.style.alignItems="center";r.style.flexWrap="wrap";
     if(i===0){const sv=el("span","saved","");sv.id="saved";r.appendChild(sv);}
-    const sb=btn("primary","Submit final deck",submit);sb.disabled=c.done!==c.n;r.appendChild(sb);
+    if(c.rework){const rb=btn("dark","Rebuild "+c.rework+" slide"+(c.rework>1?"s":"")+" now",submitRework);r.appendChild(rb);}
+    const sb=btn("primary","Submit final deck",submit);sb.disabled=c.done!==c.n||c.rework>0;r.appendChild(sb);
     b.append(l,r);});
 }
 function drawSlides(){
@@ -274,10 +299,22 @@ function slideCard(s,img){
   const th=el("div","thumb");
   if(img){const im=el("img");im.src=(img.thumbnails&&img.thumbnails.large&&img.thumbnails.large.url)||img.url;im.alt="Slide "+s.n+" preview, click to enlarge";im.loading="lazy";im.title="Click to enlarge";im.tabIndex=0;const op=()=>lbOpen(String(s.n));im.onclick=op;im.onkeydown=e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();op();}};th.appendChild(im);}
   else th.appendChild(el("div","noimg","Preview not available for this slide. The text is on the right."));
+  const pk=picked(s.n),bl=built(s.n);
+  if(pk||bl){const m=el("div","made");
+    if(pk&&s.n!=1){m.appendChild(document.createTextNode("You picked: "));m.appendChild(el("b",null,LNAME[pk.layout]||pk.layout||"Auto"));}
+    if(bl){if(pk&&s.n!=1)m.appendChild(document.createTextNode("  ·  "));m.appendChild(document.createTextNode("Built as: "));m.appendChild(el("b",null,LNAME[bl]||bl));}
+    if(x.reworked){m.appendChild(document.createTextNode("  ·  "));m.appendChild(el("b",null,"Rebuilt: "+x.reworked));}
+    th.appendChild(m);}
+  if(canRework()&&s.n!=1&&x.status!=="redesign"&&x.status!=="research"){const rw=el("div","rw");
+    rw.appendChild(btn("","✦  Redesign this slide",()=>{x.open="redesign";redraw(s.n);}));
+    if(isResearch(s.n))rw.appendChild(btn("","↻  Redo the research",()=>{x.open="research";redraw(s.n);}));
+    th.appendChild(rw);}
   th.appendChild(el("div","cap",x.kept?"Picture shows the draft. Your kept change is on the right and goes in when you submit.":"Slide "+s.n+" as built. Click the picture to enlarge."));
   const b=el("div","body");
   const hd=el("div","hd");hd.appendChild(el("span","num","SLIDE "+s.n));hd.appendChild(el("h2",null,s.title||("Slide "+s.n)));
   let badge=["Not reviewed",""];if(x.status==="good")badge=["Looks good","good"];else if(x.kept)badge=["Changed","chg"];else if(x.status==="work")badge=[x.applied?"Change to confirm":"Needs work","work"];
+  else if(x.status==="redesign")badge=["Redesign requested","rw"];else if(x.status==="research")badge=["New research requested","rw"];
+  else if(x.reworked)badge=["Rebuilt, take a look","chg"];
   hd.appendChild(el("span","badge "+badge[1],badge[0]));b.appendChild(hd);
   // text on the slide (with kept changes shown)
   const det=el("details","txt");const sm=el("summary",null,x.kept?"Text on this slide, with your change":"Text on this slide");det.appendChild(sm);
@@ -286,10 +323,16 @@ function slideCard(s,img){
   det.appendChild(lines);if(x.kept)det.open=true;b.appendChild(det);
   // actions
   const acts=el("div","acts");
-  const g=btn(x.status==="good"?"on":"","✓  Looks good",()=>{Object.assign(x,{status:"good",applied:false,kept:false});delete x.after;delete x.proposal;redraw(s.n);changed();});g.setAttribute("aria-pressed",x.status==="good");
-  const w=btn(x.status==="work"?"on":"","✎  Needs work",()=>{if(x.status!=="work"){x.status="work";x.kept=false;x.applied=false;}redraw(s.n);changed();setTimeout(()=>{const t=$("#note-"+s.n);t&&t.focus();},30);});w.setAttribute("aria-pressed",x.status==="work");
+  const g=btn(x.status==="good"?"on":"","✓  Looks good",()=>{if(x.status==="good"){delete x.status;}else{Object.assign(x,{status:"good",applied:false,kept:false});delete x.after;delete x.proposal;delete x.open;}redraw(s.n);changed();});g.setAttribute("aria-pressed",x.status==="good");
+  const w=btn(x.status==="work"?"on":"","✎  Needs work",()=>{if(x.status==="work"&&!x.kept&&!x.applied){cancelWork(x);redraw(s.n);changed();return;}if(x.status!=="work"){x.status="work";x.kept=false;x.applied=false;delete x.open;}redraw(s.n);changed();setTimeout(()=>{const t=$("#note-"+s.n);t&&t.focus();},30);});w.setAttribute("aria-pressed",x.status==="work");
   acts.append(g,w);b.appendChild(acts);
   if(x.status==="work"&&!x.kept){b.appendChild(x.applied&&x.proposal?comparePanel(s,x):notePanel(s,x));}
+  else if(x.status==="redesign"||x.status==="research"){const r=el("div","acts");
+    const what=x.status==="redesign"?"A new design"+(x.redesign&&x.redesign.layout&&x.redesign.layout!=="auto"?" ("+LNAME[x.redesign.layout]+")":"")+" is queued for this slide.":"New research is queued for this slide.";
+    r.appendChild(el("span","hint",what+" Press Rebuild at the top when you're ready."));
+    r.appendChild(btn("link","Cancel",()=>{delete x.status;delete x.redesign;delete x.research;redraw(s.n);changed();}));b.appendChild(r);}
+  else if(x.open==="redesign")b.appendChild(redesignPanel(s,x));
+  else if(x.open==="research")b.appendChild(researchPanel(s,x));
   if(x.kept){const r=el("div","acts");r.appendChild(el("span","hint",x.library?"Change kept. It will also go to Kevin as a fix for the slide library.":"Change kept, for this deck only."));
     r.appendChild(btn("link","Edit again",()=>{x.kept=false;x.applied=false;redraw(s.n);changed();}));b.appendChild(r);}
   card.append(th,b);return card;
@@ -319,9 +362,49 @@ function notePanel(s,x){
     }catch(e){ap.disabled=false;ap.textContent="Apply change";
       const er=el("div","msg err","The rewrite didn't come back just now. Try again, or edit the words yourself.");p.appendChild(er);}
   });
-  row.append(ap,btn("link","Edit the words myself",()=>{x.proposal={boxes:{},summary:"",manual:true};x.applied=true;redraw(s.n);}));
+  row.append(ap,btn("link","Cancel",()=>{cancelWork(x);redraw(s.n);changed();}),btn("link","Edit the words myself",()=>{x.proposal={boxes:{},summary:"",manual:true};x.applied=true;redraw(s.n);}));
   p.append(lab,ta,ck,row,el("div","hint","Only the words change. Layout, logo and colors stay as they are."));
   return p;
+}
+function cancelWork(x){delete x.status;delete x.note;delete x.proposal;delete x.library;x.applied=false;x.kept=false;}
+function redesignPanel(s,x){
+  const p=el("div","panel");let lay="auto";
+  p.appendChild(el("label","l","Pick a layout for the new design"));
+  const ch=el("div","chips");const cur=built(s.n);
+  ["auto"].concat(RD_LAYOUTS.filter(l=>l!==cur)).forEach(l=>{const b=el("button",l===lay?"on":null,l==="auto"?"Let us pick":LNAME[l]);b.type="button";
+    b.onclick=()=>{lay=l;ch.querySelectorAll("button").forEach(z=>z.classList.remove("on"));b.classList.add("on");};ch.appendChild(b);});
+  p.appendChild(ch);
+  const lab=el("label","l","What's off about the design? (optional)");lab.htmlFor="rd-"+s.n;
+  const ta=el("textarea");ta.id="rd-"+s.n;ta.rows=2;ta.placeholder="For example: too much text, make the numbers the hero, show it as a timeline.";
+  p.append(lab,ta);
+  const row=el("div","acts");
+  row.append(btn("primary","Request redesign",()=>{x.status="redesign";x.redesign={layout:lay,note:(ta.value||"").trim()};delete x.open;x.kept=false;x.applied=false;delete x.after;delete x.proposal;redraw(s.n);changed();}),
+    btn("link","Cancel",()=>{delete x.open;redraw(s.n);}));
+  p.append(row,el("div","hint","The words and facts stay; the layout changes. You'll see the new version here before anything is final."));
+  return p;
+}
+function researchPanel(s,x){
+  const p=el("div","panel");const e=picked(s.n)||{};const r0=e.research||{};
+  const lab=el("label","l","What should the data show?");lab.htmlFor="rs-"+s.n;
+  const ta=el("textarea");ta.id="rs-"+s.n;ta.rows=3;ta.value=e.content||"";
+  const two=el("div","row2");
+  const d1=el("div");d1.appendChild(el("label","l","How recent"));const sel=el("select");[["6","Last 6 months"],["12","Last 12 months"],["24","Last 24 months"]].forEach(([v,t])=>{const o=el("option",null,t);o.value=v;sel.appendChild(o);});sel.value=String(r0.months||12);d1.appendChild(sel);
+  const d2=el("div");d2.appendChild(el("label","l","Anything else the data must meet"));const ex=el("input");ex.type="text";ex.value=r0.rules||"";ex.placeholder="e.g. US hospitals only; no surveys under 500 people";d2.appendChild(ex);
+  two.append(d1,d2);
+  p.append(lab,ta,two);
+  const row=el("div","acts");
+  row.append(btn("primary","Request new research",()=>{x.status="research";x.research={topic:(ta.value||"").trim(),months:+sel.value,rules:(ex.value||"").trim()};delete x.open;x.kept=false;x.applied=false;delete x.after;delete x.proposal;redraw(s.n);changed();}),
+    btn("link","Cancel",()=>{delete x.open;redraw(s.n);}));
+  p.append(row,el("div","hint","We search again with these rules and check every figure on its source page. If fewer than two pass, the slide keeps placeholders and says why."));
+  return p;
+}
+async function submitRework(){
+  const c=count();if(!c.rework)return;
+  clearTimeout(saveTimer);
+  document.querySelectorAll(".bar .btn").forEach(b=>b.disabled=true);
+  ST.updated=new Date().toISOString();ST.by=ME;ST.mode="rework";delete ST.reworkError;
+  try{await callJSON({a:"decksubmit",id:DECK,state:JSON.stringify(ST)});track("Requested slide rebuild");F[K.status]="Finalizing";window.scrollTo(0,0);render();}
+  catch(e){delete ST.mode;flash("Couldn't send that just now. Your requests are saved; try again in a minute.","err");drawBar();}
 }
 function comparePanel(s,x){
   const p=el("div","panel");const pr=x.proposal;
