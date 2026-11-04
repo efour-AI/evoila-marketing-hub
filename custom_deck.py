@@ -923,13 +923,54 @@ def research_slide(entry, meta, report):
                      "The build report on the request lists what was found and why each figure was dropped."}
 
 
-def run():
-    os.makedirs(rr.WORK, exist_ok=True)
-    f = rr.get_record(rr.T_REQ, rr.REC)
-    try:
-        outline = json.loads(f.get(F_OUTLINE) or "{}")
-    except Exception:
-        raise RuntimeError("The custom outline on this row is not valid JSON.")
+REDESIGN_PROMPT = """You redesign one slide of an evoila US presentation. The person reviewing the deck did not like how this slide looks and asked for a new design. Keep what the slide says; change how it is laid out.
+
+Audience: {audience}
+Deck title: {deck_title}
+
+THE SLIDE NOW (JSON, layout "{cur}")
+{slide}
+
+WHAT THEY ASKED FOR
+Layout: {want}
+Their note (may be empty): {note}
+
+LAYOUTS YOU MAY USE (never cover)
+""" + SPEC_PROMPT.split("LAYOUTS (choose the one that fits each entry; honor the requester's pick unless the content cannot fit it)")[1].split("RULES")[0] + """
+RULES
+- If they named a layout, use it. If they said "let us pick", choose the layout that best fits the content and is NOT "{cur}".
+- Keep every fact, figure, source, name and credential exactly as it is on the slide. Never invent anything. You may split, merge or shorten the wording so it fits the new layout, and follow their note.
+- No em dashes or en dashes. Plain, direct, confident language.
+- Keep the notes (speaker notes), updated if the content moved around.
+Call submit_slide once."""
+
+
+def redesign_slide(cur, layout, note, meta, deck_title=""):
+    """Ask Claude for a new version of one slide spec in another layout. Returns the new slide dict."""
+    one = SPEC_SCHEMA["properties"]["slides"]["items"]
+    want = layout if layout in LAYOUTS and layout != "cover" else "let us pick"
+    prompt = REDESIGN_PROMPT.format(audience=meta.get("audience") or "", deck_title=deck_title,
+                                    cur=cur.get("layout") or "", slide=json.dumps(cur, indent=1)[:12000],
+                                    want=want, note=(note or "").strip() or "(none)")
+    tools = [{"name": "submit_slide", "description": "Submit the redesigned slide.", "input_schema": one}]
+    messages = [{"role": "user", "content": prompt}]
+    for _ in range(2):
+        resp = ai_steps._call({"model": ai_steps.MODEL, "max_tokens": 4000, "tools": tools, "messages": messages}, timeout=180)
+        for b in resp.get("content", []):
+            if b.get("type") == "tool_use" and b.get("name") == "submit_slide" and isinstance(b.get("input"), dict):
+                out = _clean_obj(b["input"])
+                if out.get("layout") in LAYOUTS and out.get("layout") != "cover":
+                    if want == "let us pick" and out["layout"] == cur.get("layout"):
+                        break                        # same layout again: ask once more
+                    return out
+        messages.append({"role": "assistant", "content": resp.get("content", [])})
+        messages.append({"role": "user", "content": "Call submit_slide with a layout other than cover" +
+                         (f" and other than {cur.get('layout')}" if want == "let us pick" else "") + "."})
+    raise RuntimeError("Claude returned no redesign")
+
+
+def build_meta(f):
+    """Presenters, audience and cover lines for a Deck Requests row."""
     people = []
     for pid in f.get(rr.F["presenters"], [])[:2]:
         p = rr.get_record(rr.T_PRES, pid)
@@ -944,6 +985,17 @@ def run():
             "next_step": f.get(F_NEXT) or "", "notes": f.get(rr.F["notes"]) or "",
             "background": f.get(F_BACKGROUND) or "",
             "meeting_lines": [f"Prepared for {prospect}" if prospect else "", when]}
+    return meta
+
+
+def run():
+    os.makedirs(rr.WORK, exist_ok=True)
+    f = rr.get_record(rr.T_REQ, rr.REC)
+    try:
+        outline = json.loads(f.get(F_OUTLINE) or "{}")
+    except Exception:
+        raise RuntimeError("The custom outline on this row is not valid JSON.")
+    meta = build_meta(f)
     note = ""
     meta["deck_title"] = outline.get("title") or ""
     entries = outline.get("slides") or []

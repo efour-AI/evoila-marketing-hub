@@ -227,11 +227,106 @@ def _join(paras):
     return "\n".join(p for p in (paras or []) if p)
 
 
+def rework(f, state):
+    """Redesign and research requests from the review page (custom outline and converted decks).
+    Rebuilds the deck from its slide plan with the requested slides replaced, keeps every text change
+    already kept on the other slides, refreshes previews and text, and puts the deck back In review."""
+    import custom_deck as CD
+    from pptx import Presentation
+    spec = json.loads(f.get(rr.F["plan"]) or "{}")
+    if not isinstance(spec, dict) or not spec.get("slides"):
+        raise RuntimeError("This deck has no slide plan, so slides cannot be redesigned here.")
+    try:
+        outline = json.loads(f.get(CD.F_OUTLINE) or "{}")
+    except Exception:
+        outline = {}
+    slides = state.get("slides") or {}
+    meta = CD.build_meta(f)
+    meta["deck_title"] = spec.get("title") or ""
+    done, report, edits = [], [], {}
+    for n in sorted(slides, key=lambda x: int(x) if str(x).isdigit() else 999):
+        st = slides[n] or {}
+        i = int(n) - 1 if str(n).isdigit() else -1
+        if not (0 < i < len(spec["slides"])):
+            continue
+        cur = spec["slides"][i]
+        if st.get("status") == "research" and isinstance(st.get("research"), dict):
+            rq = st["research"]
+            entries = outline.get("slides") or []
+            base = dict(entries[i - 1]) if 0 <= i - 1 < len(entries) and isinstance(entries[i - 1], dict) else {}
+            rules = dict(base.get("research") or {})
+            if rq.get("months"):
+                rules["months"] = rq["months"]
+            if rq.get("rules") is not None:
+                rules["rules"] = rq["rules"]
+            entry = {"layout": "research", "content": (rq.get("topic") or base.get("content") or cur.get("title") or "").strip(),
+                     "research": rules}
+            new = CD.research_slide(entry, meta, report)
+            spec["slides"][i] = new
+            done.append((n, "new research", new.get("title") or ""))
+        elif st.get("status") == "redesign":
+            rq = st.get("redesign") or {}
+            try:
+                new = CD.redesign_slide(cur, rq.get("layout"), rq.get("note"), meta, spec.get("title") or "")
+                spec["slides"][i] = new
+                done.append((n, "redesigned as " + new.get("layout", ""), rq.get("note") or ""))
+            except Exception as e:
+                report.append(f"Slide {n}: redesign failed ({str(e)[:150]}), slide left as it was.")
+                done.append((n, "redesign failed, unchanged", ""))
+        elif st.get("kept") and isinstance(st.get("after"), dict) and st["after"]:
+            edits[n] = st["after"]
+    tpl = rr.fetch_assets()
+    pp = (f.get(rr.F["pptx"]) or [None])[0]
+    pd = (f.get(rr.F["pdf"]) or [None])[0]
+    version = int(f.get(F_VER) or 1) + 1
+    stem = re.sub(r"_v\d+$", "", (pp or {}).get("filename", "evoila_deck.pptx").rsplit(".", 1)[0])
+    out = os.path.join(rr.WORK, re.sub(r"[^A-Za-z0-9._-]+", "_", stem).strip("_")[:90] + f"_v{version}.pptx")
+    os.makedirs(rr.WORK, exist_ok=True)
+    CD.render(spec, tpl, out, meta, rr.ENGINE)
+    if edits:
+        prs = Presentation(out)
+        apply_edits(prs, edits)
+        prs.save(out)
+    subprocess.run(["soffice", "--headless", "--convert-to", "pdf", "--outdir", rr.WORK, out],
+                   check=True, timeout=240, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    pdf = out[:-5] + ".pdf"
+    keep = [{"id": a["id"]} for a in (f.get(F_EARLIER) or [])]
+    keep += [{"url": a["url"], "filename": a.get("filename")} for a in (pp, pd) if a]
+    rr.update({F_EARLIER: keep, rr.F["pptx"]: [], rr.F["pdf"]: [], rr.F["plan"]: json.dumps(spec, indent=1)[:95000]})
+    rr.upload(rr.F["pptx"], out, PPTX_TYPE)
+    rr.upload(rr.F["pdf"], pdf, "application/pdf")
+    save_review_assets(out, pdf)
+    for n, what, _ in done:                     # reworked slides come back unreviewed, flagged for a look
+        slides[n] = {"reworked": what}
+    state.pop("mode", None)
+    state.pop("reworkError", None)
+    state["slides"] = slides
+    cur_check = f.get(rr.F["rcheck"]) or ""
+    summary = "; ".join(f"slide {n} {what}" for n, what, _ in done)
+    rr.update({F_STATE: json.dumps(state), F_VER: version, rr.F["status"]: "In review", rr.F["error"]: "",
+               rr.F["log"]: rr.RUN_URL or None,
+               rr.F["rcheck"]: ("\n".join([f"Review round v{version}: {summary}"] + report) + ("\n" + cur_check if cur_check else ""))[:95000]})
+    print("rework:", len(done), "slides")
+
+
 def finalize():
     f = rr.get_record(rr.T_REQ, rr.REC)
     if f.get(rr.F["status"]) != "Finalizing":
         print("finalize: row is not Finalizing, nothing to do")
         return
+    try:
+        st0 = json.loads(f.get(F_STATE) or "{}")
+    except Exception:
+        st0 = {}
+    if any((v or {}).get("status") in ("redesign", "research") for v in (st0.get("slides") or {}).values()):
+        try:
+            return rework(f, st0)
+        except Exception as e:
+            st0["reworkError"] = "The redesign didn't go through. Your requests are saved; try again, or tell Kevin."
+            rr.update({rr.F["status"]: "In review", F_STATE: json.dumps(st0),
+                       rr.F["rcheck"]: f"Redesign round failed: {str(e)[:400]}\n" + (f.get(rr.F["rcheck"]) or "")})
+            print("rework failed")
+            return
     try:
         state = json.loads(f.get(F_STATE) or "{}")
     except Exception:
