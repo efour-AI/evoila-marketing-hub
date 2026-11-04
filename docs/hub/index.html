@@ -402,9 +402,11 @@ function whatsNew(){
   D.decks.forEach(r=>{const f=r.fields,t=Date.parse(f["Requested at"]||r.createdTime);if(t>=since&&(f.Status==="Sent"||f.Status==="Final"))items.push([t,"Deck",(f["Company you are meeting with"]||"Deck")+" · "+first(f["Your name"])]);});
   D.posts.forEach(r=>{const f=r.fields,t=Date.parse(f["Published Date"]||"");if(t>=since&&f.Status==="Published")items.push([t,"Posted",first(f["Author / Profile"])+": "+(f["Post Title Preference"]||"LinkedIn post")]);});
   D.plan.forEach(r=>{const f=r.fields,u=(f["Latest update"]||"").match(/^\[(\d{4}-\d\d-\d\d)\]\s*([^:]+):\s*(.*)/);if(u){const t=Date.parse(u[1]+"T12:00:00");if(t>=since)items.push([t,"Plan",f.Name+": "+u[3].split("\n")[0]]);}});
-  D.items.forEach(r=>{const f=r.fields;taskEntries(f).forEach(e=>{const t=Date.parse(e.date+"T12:00:00");if(t<since)return;
-    const done=/^Closed\b/.test(e.text);const note=e.text.replace(/^Closed\.?\s*/,"").split("\n")[0];
-    items.push([t,done?"Done":"Task",first(e.who)+(done?" closed ":" on ")+"\u201c"+f.Task+"\u201d"+(note?": "+note:""),r.id]);});});
+  D.items.forEach(r=>{const f=r.fields;const ce=closedEntry(f);const es=taskEntries(f);
+    es.forEach(e=>{const t=Date.parse(e.date+"T12:00:00");if(t<since||isCloseText(e.text)||(ce&&e.date===ce.date))return;
+      items.push([t,"Task",(e.who?first(e.who)+" on ":"")+"“"+f.Task+"”: "+e.text.split("\n")[0].replace(/^Sync note:\s*/,"Sync note: "),r.id]);});
+    if(ce){const t=Date.parse(ce.date+"T12:00:00");if(t>=since){const note=ce.text.replace(/^Closed\.?\s*/,"").split("\n")[0];
+      items.push([t+1,"Done",(ce.who?first(ce.who)+" closed ":"Closed ")+"“"+f.Task+"”"+(note?": "+note:""),r.id]);}}});
   items.sort((a,b)=>b[0]-a[0]);
   if(!items.length){c.appendChild(el("div","empty","Quiet fortnight. New decks, posts, task updates and library files show up here."));return c;}
   const ul=el("ul","feed");
@@ -504,17 +506,28 @@ function strategy(admin){
     w.appendChild(el("p","objsum",closed.length+" task"+(closed.length===1?"":"s")+" closed in the last three weeks."));
     const box=el("div","inits");
     closed.forEach(([t,f,ce])=>{const card=taskCard(f,admin,null);const note=ce.text.replace(/^Closed\.?\s*/,"");
-      card.querySelector(".imeta").textContent="Closed "+fmt(ce.date)+" by "+first(ce.who)+(note?" · "+note.split("\n")[0]:"");box.appendChild(card);});
+      card.querySelector(".imeta").textContent="Closed "+fmt(ce.date)+(ce.who?" by "+first(ce.who):"")+(note?" · "+note.split("\n")[0]:"");box.appendChild(card);});
     w.appendChild(box);c.appendChild(w);
   }
   return c;
 }
 
 const TASK_STATUSES=["Open","In Progress","Blocked","Closed"];
-/* dated entries in a task's My Update, newest first: [{date,who,text}] */
-function taskEntries(t){const out=[];const re=/\[(\d{4}-\d\d-\d\d)\]\s*([^:\n]+):\s*([\s\S]*?)(?=\n\s*\n\[\d{4}-\d\d-\d\d\]|$)/g;let m;
-  while((m=re.exec(t["My Update"]||""))){out.push({date:m[1],who:m[2].trim(),text:m[3].trim()});}return out;}
-function closedEntry(t){return taskEntries(t).find(e=>/^Closed\b/.test(e.text))||null;}
+/* dated entries in a task's My Update, newest first: [{date,who,text}]. Handles "[date] Name: note" and "[date] note" lines. */
+function taskEntries(t){
+  const raw=String(t["My Update"]||"");if(!raw.trim())return [];
+  const parts=raw.split(/\n(?=\s*\[\d{4}-\d\d-\d\d\])/);const out=[];
+  parts.forEach(pt=>{const m=pt.match(/^\s*\[(\d{4}-\d\d-\d\d)\]\s*([\s\S]*)$/);if(!m)return;
+    let who="",text=m[2].trim();const n=text.match(/^([A-Z][\w'.\-]*(?: [A-Z][\w'.\-]*){0,2}):\s*([\s\S]*)$/);if(n){who=n[1];text=n[2].trim();}
+    if(text)out.push({date:m[1],who,text});});
+  return out.map((e,k)=>[e,k]).sort((a,b)=>b[0].date.localeCompare(a[0].date)||a[1]-b[1]).map(x=>x[0]);}
+function isCloseText(x){return /^Closed\b/i.test(x);}
+/* when and how a closed task was closed: its "Closed" entry, else its newest entry */
+function closedEntry(t){if(t.Status!=="Closed")return null;const es=taskEntries(t);if(!es.length)return null;
+  const c=es.find(e=>isCloseText(e.text))||es[0];
+  const extra=es.filter(e=>e.date===c.date&&e!==c).map(e=>e.text.replace(/^Sync note:\s*/,"")).filter(x=>!isCloseText(x));
+  const own=isCloseText(c.text)?c.text.replace(/^Closed\.?\s*/,""):c.text;
+  return {date:c.date,who:c.who,text:"Closed. "+[own].concat(extra).filter(Boolean).join(" · ")};}
 function jumpToTask(id){const d=document.querySelector('details[data-key="task-'+id+'"]');if(!d)return;
   let p=d.parentElement;while(p){if(p.tagName==="DETAILS")p.open=true;p=p.parentElement;}d.open=true;d.scrollIntoView({block:"start",behavior:"smooth"});}
 function taskMeta(t){const r=[];if(t.Owner)r.push(t.Owner.map(first).join(", "));if(t["Due Date"]){const dd=days(t["Due Date"]);r.push("Due "+fmt(t["Due Date"])+(dd!=null&&dd<0?" (overdue)":""));}else if(t["Due Note"])r.push(t["Due Note"]);
