@@ -63,7 +63,7 @@ SPEC_SCHEMA = {
     "required": ["title", "slides"],
 }
 
-SPEC_PROMPT = """You write the slide copy for a presentation for evoila US, a VMware by Broadcom specialist services firm in North America (private cloud, private AI, security and hybrid operations on VMware Cloud Foundation; assessment, build, migration and lifecycle services; delivery often under channel partners' badges). The person asking wrote an outline. Your job is to turn each outline entry into one finished slide, then call submit_deck.
+SPEC_PROMPT = """You write the slide copy for a presentation for evoila US, a VMware by Broadcom specialist services firm in North America (private cloud, private AI, security and hybrid operations on VMware Cloud Foundation; assessment, build, migration and lifecycle services). The person asking wrote an outline. Your job is to turn each outline entry into one finished slide, then call submit_deck.
 
 WHO AND WHAT
 Presenter(s): {presenters}
@@ -84,7 +84,7 @@ LAYOUTS (choose the one that fits each entry; honor the requester's pick unless 
 - bullets: title + 3 to 6 items; each item has an optional heading (2 to 4 words, bolded) and text (under 110 characters).
 - columns: title + 2 or 3 items; each item has a heading (under 32 characters) and 2 to 4 points (under 75 characters each).
 - cards: title + 3 or 4 items; each item has a heading (under 30 characters), text (under 95 characters) and an icon from the allowed list.
-- numbers: title + 2 to 4 items; each item has figure (short, for example 40% or 3x) and heading (the label, under 60 characters); source (who published the figures). Only use figures the requester supplied. If they asked for numbers without giving them, use bracketed placeholders such as [figure] and say in the notes what to fill in.
+- numbers: title + 2 to 4 items; each item has figure (short, at most 8 characters, for example 40%, 3x, $1.5T, Oct 2027) and heading (the label, under 60 characters); source (who published the figures). The heading completes the figure in lower case where it reads on from it (for example "of enterprises run ..."). Only use figures the requester supplied. If they asked for numbers without giving them, use bracketed placeholders such as [figure] and say in the notes what to fill in.
 - steps: title + 3 to 5 items; each item has a heading (under 28 characters) and text (under 90 characters).
 - comparison: title + headers (2 or 3 column names, the first column holds row labels and has no header) + 2 to 5 rows; each row has a label (under 28 characters) and one short cell per header (under 60 characters).
 - quote: dark slide. statement is the quote (under 160 characters, only words the requester supplied), support is the attribution.
@@ -96,7 +96,9 @@ RULES
 - One slide per outline entry. Do not add or drop slides other than the cover.
 - Write only what the requester asked for, in their direction. You may tighten and organize their words; keep their meaning.
 - Never invent customers, case studies, results, figures, prices, savings, certifications, awards or dates. If the outline needs a fact you do not have, put a bracketed placeholder like [customer example] on the slide and say in the notes what is missing.
-- evoila facts you may use if relevant: Broadcom Pinnacle Partner; assessment-led approach; work is delivered in phases a customer can commission one at a time; delivery often under channel partners' badges; engineering teams in multiple countries behind the US team. Do not mention VCSP or partner-of-the-year awards.
+- evoila facts you may use if relevant: the credentials, written exactly this way: Broadcom Global Pinnacle Partner, VCSP Global Pinnacle Partner, President's Choice Award 2025, VCSP Partner of the Year 2025 (this one recognizes how evoila runs customer environments day to day, so lead with it when the slide is about operating or managed services); assessment-led approach; greenfield migration through a repeatable migration factory; work delivered in phases a customer can commission one at a time; a North American team backed by evoila's global VMware depth. When the requester names a credential or fact, keep it on the slide.
+- Delivery under channel partners' badges is said only to Partner audiences. For any other audience never put it on a slide or in the notes.
+- Everything on a slide is what evoila does. No negative statements about what evoila will not do, and no partner or competitor names that the requester did not give.
 - Plain, direct, confident language. Short sentences. No hype, no buzzwords, no exclamation marks.
 - No em dashes or en dashes anywhere. Use commas, colons or periods.
 - notes: 2 to 4 sentences of speaker notes per slide, in the presenter's voice, saying how to land the slide. List anything in brackets that the presenter must fill in before the meeting.
@@ -178,6 +180,43 @@ def fallback_spec(outline):
 
 
 # ---------------------------------------------------------------- rendering
+
+MONTHS = {m: m[:3] for m in ("January February March April May June July August September October November December").split()}
+
+
+def _money(v):
+    for div, suf in ((1e12, "T"), (1e9, "B"), (1e6, "M"), (1e3, "K")):
+        if v >= div:
+            x = v / div
+            return "$" + (f"{x:.2f}" if x < 10 else f"{x:.1f}" if x < 100 else f"{x:.0f}").rstrip("0").rstrip(".") + suf
+    return f"${v:,.0f}"
+
+
+def normalize_figure(fig, label):
+    """Make a big-number figure short enough to read at a glance.
+    '1,484,397' + 'spending, millions of US dollars' -> '$1.48T' + 'spending'. 'October 2027' -> 'Oct 2027'."""
+    f, l = str(fig or "").strip(), str(label or "").strip()
+    m = re.fullmatch(r"\$?(\d{1,3}(?:,\d{3})+|\d+)(\.\d+)?", f)
+    unit = re.search(r",?\s*\(?\s*(?:in\s+)?(millions|billions|thousands)\s+of\s+(?:US\s+|U\.S\.\s+)?dollars\s*\)?", l, re.I)
+    if m and unit:
+        v = float((m.group(1) + (m.group(2) or "")).replace(",", "")) * {"thousands": 1e3, "millions": 1e6, "billions": 1e9}[unit.group(1).lower()]
+        f = _money(v)
+        l = (l[:unit.start()] + l[unit.end():]).strip(" ,")
+    elif m and len(m.group(1).replace(",", "")) >= 6:
+        v = float(m.group(1).replace(",", ""))
+        f = (f"{v / 1e9:.1f}B" if v >= 1e9 else f"{v / 1e6:.1f}M").replace(".0", "")
+    for long, short in MONTHS.items():
+        f = re.sub(r"\b" + long + r"\b", short, f)
+    return f, l
+
+
+def display_figure(f):
+    return str(f or "").strip()
+
+
+def display_label(l):
+    return str(l or "").strip()
+
 
 def _fit(t, n, base, low):
     l = len(t or "")
@@ -261,150 +300,297 @@ def render(spec, tpl_path, out, meta, engine_dir):
                 ph.left, ph.top, ph.width, ph.height = _Inch(1.0), _Inch(ty - 0.42), _Inch(4.4), _Inch(0.24)
         return sld
 
-    def agenda(s):
-        sld = new(prs, "light", s.get("title") or "Agenda")
-        its = items(s, hi=7)
-        h = min(0.72, 4.9 / max(1, len(its)))
-        for i, it in enumerate(its):
-            y = 1.55 + i * (h + 0.08)
-            box(sld, X0, y, W, h, fill=CREAM, radius=0.18)
-            text(sld, X0 + 0.25, y, 0.8, h, f"{i + 1:02d}", size=20, bold=True, color=BLUE, anchor=MSO_ANCHOR.MIDDLE)
-            text(sld, X0 + 1.2, y, W - 1.5, h, it.get("heading") or it.get("text") or "", size=18, bold=True,
-                 color=VIOLET, anchor=MSO_ANCHOR.MIDDLE)
+    # ---- measuring helpers: keep every line inside its box
+    def tw(t, size, bold=True):
+        """Width in inches of t on one line at this size (Inter metrics)."""
+        f = BL._font(size, bold)
+        return (f.getlength(str(t)) if f else len(str(t)) * size * 4 * 0.58) / (4 * 72)
+
+    def one_line(t, w_in, hi, lo, bold=True):
+        sz = hi
+        while sz > lo and tw(t, sz, bold) > w_in * 0.96:
+            sz -= 1
+        return sz
+
+    def fit(t, w_in, h_in, hi, lo, bold=False):
+        return BL.fit_size(t, w_in, h_in, list(range(int(hi), int(lo) - 1, -1)), bold)
+
+    def th(t, w_in, size, bold=False, lead=1.22):
+        return BL.text_lines(t, w_in, size, bold) * size * lead / 72
+
+    state = {"dark": False}
+
+    def mark(sld, dark):
+        state["dark"] = dark
         return sld
 
+    def gbar(sld, x, y, w, h, vertical=False):
+        return box(sld, x, y, w, h, grad=(GREEN, BLUE, 90 if vertical else 0), radius=0)
+
+    def check(sld, x, y, d=0.3, dark=False):
+        icon_disc(sld, "CircleCheck", x, y, d, disc=GREEN if not dark else GREEN, color="v")
+
+    # ---- statement: split layout, big message on white, support line on a violet panel
     def statement(s):
         st = s.get("statement") or s.get("title") or ""
-        ttl = s.get("title") or ""
-        if ttl.strip(" .").lower() in st.strip(" .").lower() or st.strip(" .").lower().startswith(ttl.strip(" .").lower()[:30]):
-            ttl = ""                             # don't print the same line twice
-        sld = new(prs, "dark", ttl)
-        BL.add_blob(sld, "right")
-        y = 2.0
+        sup = s.get("support") or ""
+        ttl = (s.get("title") or "").strip()
+        if ttl and not s.get("kicker") and ttl.strip(" .").lower() not in st.lower() and len(ttl) <= 40:
+            s = dict(s, kicker=ttl)               # a separate short title reads as the kicker
+        sld = new(prs, "light", "")
+        for shp in list(sld.placeholders):             # no title bar on a statement slide
+            if shp.placeholder_format.idx == 0:
+                shp._element.getparent().remove(shp._element)
+        PX = 8.55
+        box(sld, PX, 0, 13.333 - PX, 6.62, fill=VIOLET, radius=0)
+        box(sld, PX, 0, 0.09, 6.62, grad=(GREEN, BLUE, 90), radius=0)
+        for k, (d, a) in enumerate([(3.6, 10), (2.5, 14), (1.4, 22)]):   # rings, partly off the edge
+            box(sld, 13.333 - d * 0.62, 0.35 - d * 0.18, d, d, line="0BD7A1@%d" % a, lw=1.5, shape=MSO_SHAPE.OVAL)
+        icon(sld, "Sparkles", PX + 0.7, 1.15, 0.62, "g")
+        if sup:
+            ssz = fit(sup, 3.6, 2.6, 24, 16, True)
+            text(sld, PX + 0.7, 2.05, 3.65, 3.0, sup, size=ssz, bold=True, color=WHITE, line_spacing=1.08)
+        else:
+            text(sld, PX + 0.7, 2.05, 3.65, 1.0, "evoila  |  North America", size=16, color=SOFT)
+        y = 1.55
+        gbar(sld, X0, y + 0.05, 0.12, 4.1, vertical=True)
         if s.get("kicker"):
-            text(sld, X0, y, 7.6, 0.4, s["kicker"].upper(), size=13, bold=True, color=GREEN)
-            y += 0.55
-        text(sld, X0, y, 7.6, 2.4, st, size=_fit(st, 70, 36, 24), bold=True, color=WHITE)
-        if s.get("support"):
-            text(sld, X0, 5.0, 7.4, 1.0, s["support"], size=17, color=SOFT)
-        return sld
+            text(sld, X0 + 0.45, y, 7.0, 0.4, [[(s["kicker"].upper(), {"caps_spacing": 300})]], size=14, bold=True, color=BLUE)
+            y += 0.6
+        ssz = fit(st, 6.9, 3.6, 46, 28, True)
+        text(sld, X0 + 0.45, y, 6.9, 3.8, st, size=ssz, bold=True, color=VIOLET, line_spacing=1.0)
+        return mark(sld, False)
 
+    # ---- bullets: list for up to 3, a numbered 2-column grid for 4 to 6
     def bullets(s):
         sld = new(prs, "light", s.get("title") or "")
         y0 = 1.5
         if s.get("support"):
             text(sld, X0, y0, W, 0.5, s["support"], size=15, color=MUTED)
-            y0 += 0.65
-        its = items(s, hi=6)
-        gap = min(0.95, (6.55 - y0) / max(1, len(its)))
-        for i, it in enumerate(its):
-            y = y0 + i * gap
-            box(sld, X0, y, W, gap - 0.12, fill=CREAM, radius=0.18)
-            box(sld, X0 + 0.25, y + (gap - 0.12) / 2 - 0.08, 0.16, 0.16, fill=ACC[i % 2], shape=MSO_SHAPE.OVAL)
-            runs = []
-            if it.get("heading"):
-                runs.append((it["heading"].rstrip(":") + "   ", {"bold": True, "color": VIOLET}))
-            runs.append((it.get("text") or "", {"color": VIOLET}))
-            text(sld, X0 + 0.65, y, W - 0.9, gap - 0.12, [runs], size=_fit(it.get("text") or "", 90, 19, 14),
-                 anchor=MSO_ANCHOR.MIDDLE)
-        return sld
+            y0 += 0.6
+        its = items(s, hi=6) or [{"text": ""}]
+        n = len(its)
+        if n >= 4:
+            rows = (n + 1) // 2; g = 0.22; cw = (W - g) / 2
+            ch = min(1.45, (6.55 - y0 - g * (rows - 1)) / rows)
+            longest = max(((it.get("text") or "") for it in its), key=len)
+            tsz = fit(longest, cw - 1.75, ch - 0.55, 15, 11)
+            for i, it in enumerate(its):
+                x = X0 + (i % 2) * (cw + g); y = y0 + (i // 2) * (ch + g)
+                box(sld, x, y, cw, ch, fill=CREAM, radius=0.1)
+                box(sld, x, y + 0.18, 0.08, ch - 0.36, fill=ACC[i % 2], radius=0)
+                text(sld, x + 0.3, y, 1.0, ch, f"{i + 1:02d}", size=30, bold=True, color=ACC[i % 2] if i % 2 else BLUE,
+                     anchor=MSO_ANCHOR.MIDDLE)
+                hd = (it.get("heading") or "").rstrip(":")
+                body = it.get("text") or ""
+                paras = ([[(hd, {"bold": True, "size": 16, "color": VIOLET})]] if hd else []) + [[(body, {"color": MUTED})]]
+                text(sld, x + 1.35, y, cw - 1.6, ch, paras, size=tsz, anchor=MSO_ANCHOR.MIDDLE, spacing=3)
+        else:
+            gap = min(1.35, (6.55 - y0) / n)
+            for i, it in enumerate(its):
+                y = y0 + i * gap
+                box(sld, X0, y, W, gap - 0.16, fill=CREAM, radius=0.14)
+                icon_disc(sld, ic(it), X0 + 0.25, y + (gap - 0.16) / 2 - 0.32, 0.64, disc=ACC[i % 2], color="v")
+                runs = []
+                if it.get("heading"):
+                    runs.append((it["heading"].rstrip(":") + "   ", {"bold": True}))
+                runs.append((it.get("text") or "", {}))
+                text(sld, X0 + 1.2, y, W - 1.5, gap - 0.16, [runs], size=fit(it.get("text") or "", W - 3, gap - 0.3, 20, 14),
+                     color=VIOLET, anchor=MSO_ANCHOR.MIDDLE)
+        return mark(sld, False)
 
+    # ---- columns: violet header block with a number and icon, checked points underneath
     def columns(s):
         sld = new(prs, "light", s.get("title") or "")
         its = items(s, hi=3) or [{}]
         n = len(its); g = 0.3; w = (W - g * (n - 1)) / n
+        top, bot = 1.55, 6.5
+        hh = 1.55
+        allpts = [p for it in its for p in (it.get("points") or ([it["text"]] if it.get("text") else []))]
+        psz = fit(max(allpts, key=len) if allpts else "", w - 1.0, 0.9, 18, 12)
+        hsz_all = min(fit(it.get("heading") or "", w - 0.6, 0.66, 20, 14, True) for it in its)
         for i, it in enumerate(its):
             x = X0 + i * (w + g)
-            box(sld, x, 1.55, w, 4.95, fill=CREAM, radius=0.06)
-            box(sld, x, 1.55, w, 0.09, fill=ACC[i % len(ACC)], radius=0)
-            text(sld, x + 0.3, 1.85, w - 0.6, 0.8, it.get("heading") or "", size=20, bold=True, color=VIOLET)
+            box(sld, x, top, w, bot - top, fill=CREAM, radius=0.06)
+            hb = box(sld, x, top, w, hh, fill=VIOLET, radius=0.06)
+            box(sld, x, top + hh - 0.2, w, 0.2, fill=VIOLET, radius=0)          # square off the header's bottom
+            box(sld, x, top + hh, w, 0.07, grad=(ACC[i % len(ACC)], BLUE, 0), radius=0)
+            text(sld, x + 0.3, top + 0.2, 1.2, 0.6, f"{i + 1:02d}", size=26, bold=True, color=GREEN)
+            icon(sld, ic(it), x + w - 0.85, top + 0.25, 0.52, "g")
+            hd = it.get("heading") or ""
+            text(sld, x + 0.3, top + 0.72, w - 0.6, 0.75, hd, size=hsz_all, bold=True, color=WHITE)
             pts = it.get("points") or ([it["text"]] if it.get("text") else [])
-            paras = [[("•  ", {"color": BLUE, "bold": True}), (p, {})] for p in pts[:4]]
-            if paras:
-                text(sld, x + 0.3, 2.75, w - 0.6, 3.5, paras, size=_fit(max(pts, key=len), 60, 15, 12),
-                     color=VIOLET, spacing=10)
-        return sld
+            y = top + hh + 0.4
+            step = min(1.15, (bot - y - 0.1) / max(1, len(pts[:4])))
+            for p in pts[:4]:
+                check(sld, x + 0.3, y + 0.02, 0.32)
+                text(sld, x + 0.78, y - 0.02, w - 1.0, step, p, size=psz, color=VIOLET)
+                y += step
+        return mark(sld, False)
 
+    # ---- cards: white cards with a gradient top edge and a big icon
     def cards(s):
         sld = new(prs, "light", s.get("title") or "")
         its = items(s, hi=4) or [{}]
-        n = len(its); g = 0.3; w = (W - g * (n - 1)) / n
+        n = len(its); g = 0.28; w = (W - g * (n - 1)) / n
+        top, h = 1.6, 4.85
+        box(sld, 0, top + 1.25, 13.333, h - 1.25 + 0.35, fill=CREAM, radius=0)        # band behind the cards
+        hsz = min(fit(it.get("heading") or "", w - 0.7, 0.85, 19, 14, True) for it in its)
+        tsz = min(fit(it.get("text") or "", w - 0.7, 1.9, 15, 11) for it in its)
         for i, it in enumerate(its):
             x = X0 + i * (w + g)
-            box(sld, x, 1.65, w, 4.6, fill=CREAM, radius=0.08)
-            col = ACC[i % len(ACC)]
-            icon_disc(sld, ic(it), x + 0.35, 1.95, 0.95, disc=col, color="v" if col in (GREEN, LBLUE) else "w")
-            text(sld, x + 0.35, 3.15, w - 0.7, 0.8, it.get("heading") or "", size=_fit(it.get("heading") or "", 22, 19, 15),
-                 bold=True, color=VIOLET)
-            text(sld, x + 0.35, 4.0, w - 0.7, 2.1, it.get("text") or "", size=_fit(it.get("text") or "", 80, 15, 12),
-                 color=MUTED)
-        return sld
+            box(sld, x, top, w, h, fill=WHITE, line="1F1534@14", lw=0.75, radius=0.06)
+            box(sld, x, top, w, 0.1, grad=(GREEN, BLUE, 0), radius=0)
+            icon_disc(sld, ic(it), x + 0.35, top + 0.45, 1.0, grad=(GREEN, BLUE, 45), color="w")
+            text(sld, x + w - 0.95, top + 0.5, 0.65, 0.5, f"{i + 1:02d}", size=14, bold=True, color="1F1534@30",
+                 align=PP_ALIGN.RIGHT)
+            text(sld, x + 0.35, top + 1.7, w - 0.7, 0.9, it.get("heading") or "", size=hsz, bold=True, color=VIOLET)
+            line(sld, x + 0.35, top + 2.65, x + 1.15, top + 2.65, color=GREEN, width=2)
+            text(sld, x + 0.35, top + 2.85, w - 0.7, 1.9, it.get("text") or "", size=tsz, color=MUTED)
+        return mark(sld, False)
+
+    # ---- numbers: one-line figures sized to fit, a meter for shares, alternating dark and light
+    def share(fig):
+        f = str(fig).replace(" ", "").lower()
+        m = re.match(r"^~?(\d+(?:\.\d+)?)%\+?$", f)
+        if m:
+            return min(1.0, float(m.group(1)) / 100)
+        m = re.match(r"^(\d+)(?:of|in|outof)(\d+)$", f)
+        if m and float(m.group(2)) > 0:
+            return min(1.0, float(m.group(1)) / float(m.group(2)))
+        return None
 
     def numbers(s):
-        sld = new(prs, "dark", s.get("title") or "")
+        dark = not state["dark"]
+        sld = new(prs, "dark" if dark else "light", s.get("title") or "")
         its = items(s, hi=4) or [{}]
-        n = len(its); g = 0.35; w = (W - g * (n - 1)) / n
-        for i, it in enumerate(its):
+        n = len(its); g = 0.3; w = (W - g * (n - 1)) / n
+        top, h = 1.65, 4.25
+        figs = [display_figure(it.get("figure") or "[figure]") for it in its]
+        fsz = min(one_line(f, w - 0.6, 72 if n <= 3 else 54, 28) for f in figs)   # same size across the row
+        fh = fsz * 1.05 / 72
+        labels = [display_label(it.get("heading") or it.get("text") or "") for it in its]
+        lsz = min(fit(l, w - 0.6, 1.6, 20 if n <= 3 else 17, 12) for l in labels)
+        lh = max(th(l, w - 0.6, lsz) for l in labels)
+        h = min(4.4, 0.45 + fh + 0.3 + 0.42 + lh + 0.5)
+        top = 1.55 + max(0, (4.4 - h) / 2) * 0.6
+        card_fill = VIOLET2 if dark else CREAM
+        fig_col = GREEN if dark else BLUE
+        lab_col = WHITE if dark else VIOLET
+        for i, (it, fig, lab) in enumerate(zip(its, figs, labels)):
             x = X0 + i * (w + g)
-            box(sld, x, 1.8, w, 3.7, fill=VIOLET2, alpha=92, line="FFFFFF@20", lw=0.75, radius=0.08)
-            fig = it.get("figure") or "[figure]"
-            text(sld, x + 0.3, 2.1, w - 0.6, 1.3, fig, size=_fit(fig, 6, 54, 30), bold=True, color=GREEN)
-            text(sld, x + 0.3, 3.55, w - 0.6, 1.8, it.get("heading") or it.get("text") or "",
-                 size=_fit(it.get("heading") or "", 55, 17, 13), color=WHITE)
+            box(sld, x, top, w, h, fill=card_fill, line="FFFFFF@16" if dark else None, lw=0.75, radius=0.07)
+            box(sld, x, top, w, 0.08, grad=(GREEN, BLUE, 0), radius=0)
+            y = top + 0.45
+            text(sld, x + 0.3, y, w - 0.6, fh + 0.1, fig, size=fsz, bold=True, color=fig_col)
+            y += fh + 0.3
+            sh = share(fig)
+            if sh is not None:
+                box(sld, x + 0.3, y, w - 0.6, 0.14, fill="FFFFFF@18" if dark else "1F1534@12", radius=0.5)
+                if sh > 0.01:
+                    box(sld, x + 0.3, y, max(0.16, (w - 0.6) * sh), 0.14, grad=(GREEN, BLUE, 0), radius=0.5)
+            else:
+                icon(sld, BL.pick_icon(lab, "TrendingUp"), x + 0.3, y - 0.12, 0.42, "g" if dark else "v")
+            y += 0.42
+            text(sld, x + 0.3, y, w - 0.6, top + h - y - 0.2, lab, size=lsz, color=lab_col)
         if s.get("source"):
-            text(sld, X0, 5.85, W, 0.4, "Source: " + s["source"], size=11, color=SOFT)
-        return sld
+            text(sld, X0, top + h + 0.25, W, 0.4, [[("SOURCE   ", {"bold": True, "color": GREEN if dark else BLUE, "size": 10}),
+                                                  (s["source"], {})]], size=11, color=SOFT if dark else MUTED)
+        return mark(sld, dark)
 
+    # ---- steps: a chevron band in brand colours, detail cards underneath
     def steps(s):
         sld = new(prs, "light", s.get("title") or "")
         its = items(s, hi=5) or [{}]
-        n = len(its); g = 0.25; w = (W - g * (n - 1)) / n
+        n = len(its); ov = 0.22
+        cw = (W + ov * (n - 1)) / n
+        cols = [GREEN, "06B8BE", LBLUE, BLUE, INDIGO][:n] if n == 5 else [GREEN, LBLUE, BLUE, INDIGO][:n]
+        hsz = min(one_line(it.get("heading") or "", cw - 0.9, 18, 12) for it in its)
+        tsz = min(fit(it.get("text") or "", cw - ov - 0.56, 1.9, 17, 11) for it in its)
+        bh = min(3.4, max(th(it.get("text") or "", cw - ov - 0.56, tsz) for it in its) + 0.75)
         for i, it in enumerate(its):
-            x = X0 + i * (w + g)
-            d = box(sld, x, 1.75, 0.95, 0.95, grad=(GREEN, BLUE, 45), shape=MSO_SHAPE.OVAL)
-            text_in(d, str(i + 1), size=26, bold=True, color=WHITE, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, margin=0)
-            if i < n - 1:
-                line(sld, x + 1.05, 2.22, x + w + g - 0.1, 2.22, color="1F1534@35", width=1.5, dash=DASH.DASH)
-            text(sld, x, 3.0, w - 0.1, 0.8, it.get("heading") or "", size=_fit(it.get("heading") or "", 22, 19, 15),
-                 bold=True, color=VIOLET)
-            text(sld, x, 3.85, w - 0.1, 2.4, it.get("text") or "", size=_fit(it.get("text") or "", 75, 15, 12), color=MUTED)
-        return sld
+            x = X0 + i * (cw - ov)
+            shp = box(sld, x, 1.7, cw, 1.05, fill=cols[i], shape=MSO_SHAPE.PENTAGON if i == 0 else MSO_SHAPE.CHEVRON, radius=0)
+            try:
+                shp.adjustments[0] = 0.32
+            except Exception:
+                pass
+            dark_txt = cols[i] in (GREEN,)
+            text_in(shp, [[(f"{i + 1:02d}  ", {"size": hsz - 2, "color": VIOLET if dark_txt else "FFFFFF@70"}),
+                           (it.get("heading") or "", {"size": hsz, "bold": True})]],
+                    color=VIOLET if dark_txt else WHITE, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, margin=0.05)
+            bx = X0 + i * (cw - ov) + (0.12 if i else 0)
+            bw = cw - ov - 0.12
+            box(sld, bx, 3.05, bw, bh, fill=CREAM, radius=0.06)
+            box(sld, bx, 3.05, bw, 0.07, fill=cols[i], radius=0)
+            text(sld, bx + 0.22, 3.35, bw - 0.44, bh - 0.4, it.get("text") or "", size=tsz, color=VIOLET)
+        return mark(sld, False)
 
+    # ---- comparison: "today" and "after" panels with an arrow between (2 columns); a grid for 3
     def comparison(s):
-        sld = new(prs, "light", s.get("title") or "")
         heads = (s.get("headers") or [])[:3]
         rows = [r for r in (s.get("rows") or []) if isinstance(r, dict)][:5]
-        nc = max(1, len(heads)); lw = 2.8; g = 0.12
-        cw = (W - lw - g * nc) / nc
-        rh = min(0.95, (6.5 - 2.3) / max(1, len(rows)))
-        for j, h in enumerate(heads):
-            x = X0 + lw + g + j * (cw + g)
-            b = box(sld, x, 1.55, cw, 0.62, fill=[INDIGO, BLUE, GREEN][j % 3], radius=0.12)
-            text_in(b, h, size=15, bold=True, color=WHITE if j < 2 else VIOLET, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE)
+        if len(heads) != 2:
+            return table(dict(s, headers=[""] + heads))
+        sld = new(prs, "light", s.get("title") or "")
+        gap = 0.9; pw = (W - gap) / 2
+        top, bot = 1.5, 6.55
+        hh = 0.75
+        nr = max(1, len(rows))
+        rh = (bot - top - hh - 0.15) / nr
+        cells = [c for r in rows for c in (r.get("cells") or [])[:2]]
+        csz = min([fit(c, pw - 1.2, rh - 0.42, 16, 11) for c in cells] or [14])
+        lx = X0; rx = X0 + pw + gap
+        box(sld, lx, top, pw, bot - top, fill=CREAM, radius=0.05)
+        box(sld, rx, top, pw, bot - top, fill=VIOLET, radius=0.05)
+        box(sld, rx, top, pw, 0.09, grad=(GREEN, BLUE, 0), radius=0)
+        text(sld, lx + 0.35, top + 0.15, pw - 0.7, hh - 0.15, heads[0].upper(), size=15, bold=True, color="1F1534@55",
+             anchor=MSO_ANCHOR.MIDDLE)
+        text(sld, rx + 0.35, top + 0.15, pw - 0.7, hh - 0.15, heads[1].upper(), size=15, bold=True, color=GREEN,
+             anchor=MSO_ANCHOR.MIDDLE)
+        d = box(sld, X0 + pw + gap / 2 - 0.38, (top + bot) / 2 - 0.38, 0.76, 0.76, grad=(GREEN, BLUE, 45), shape=MSO_SHAPE.OVAL)
+        icon(sld, "ArrowRight", X0 + pw + gap / 2 - 0.22, (top + bot) / 2 - 0.22, 0.44, "w")
         for i, r in enumerate(rows):
-            y = 2.3 + i * (rh + g / 2)
-            b = box(sld, X0, y, lw, rh, fill=VIOLET, radius=0.08)
-            text_in(b, r.get("label") or "", size=14, bold=True, color=WHITE, anchor=MSO_ANCHOR.MIDDLE)
-            for j in range(nc):
-                cell = (r.get("cells") or [])[j] if j < len(r.get("cells") or []) else ""
-                x = X0 + lw + g + j * (cw + g)
-                b = box(sld, x, y, cw, rh, fill=CREAM, radius=0.08)
-                text_in(b, cell, size=_fit(cell, 50, 13.5, 11), color=VIOLET, anchor=MSO_ANCHOR.MIDDLE)
-        return sld
+            y = top + hh + 0.1 + i * rh
+            cl = (r.get("cells") or ["", ""]) + ["", ""]
+            lab = (r.get("label") or "").upper()
+            if i:
+                line(sld, lx + 0.35, y, lx + pw - 0.35, y, color="1F1534@14", width=0.75)
+                line(sld, rx + 0.35, y, rx + pw - 0.35, y, color="FFFFFF@16", width=0.75)
+            text(sld, lx + 0.35, y + 0.1, pw - 0.7, 0.3, lab, size=10, bold=True, color="1F1534@50")
+            text(sld, rx + 0.35, y + 0.1, pw - 0.7, 0.3, lab, size=10, bold=True, color=GREEN)
+            box(sld, lx + 0.38, y + 0.5, 0.22, 0.22, fill="1F1534@22", shape=MSO_SHAPE.OVAL)
+            text(sld, lx + 0.85, y + 0.38, pw - 1.2, rh - 0.42, cl[0], size=csz, color=MUTED)
+            check(sld, rx + 0.35, y + 0.44, 0.3)
+            text(sld, rx + 0.85, y + 0.38, pw - 1.2, rh - 0.42, cl[1], size=csz, bold=True, color=WHITE)
+        return mark(sld, False)
 
+    # ---- quote: big mark, white panel feel without the cover artwork
     def quote(s):
-        st = s.get("statement") or s.get("title") or ""
-        ttl = s.get("title") or ""
-        if ttl.strip(" .").lower() in st.strip(" .").lower() or st.strip(" .").lower().startswith(ttl.strip(" .").lower()[:30]):
-            ttl = ""                             # don't print the same line twice
-        sld = new(prs, "dark", ttl)
-        BL.add_blob(sld, "right")
-        icon(sld, "Quote", X0, 1.7, 0.8, "g")
+        sld = new(prs, "dark", "")
+        for shp in list(sld.placeholders):
+            if shp.placeholder_format.idx == 0:
+                shp._element.getparent().remove(shp._element)
+        gbar(sld, X0, 1.5, 0.12, 4.4, vertical=True)
+        icon(sld, "Quote", X0 + 0.5, 1.45, 1.0, "g")
         q = s.get("statement") or ""
-        text(sld, X0, 2.65, 7.8, 2.4, q, size=_fit(q, 110, 28, 20), bold=True, color=WHITE)
+        text(sld, X0 + 0.5, 2.7, 10.5, 2.6, q, size=fit(q, 10.5, 2.6, 34, 22, True), bold=True, color=WHITE)
         if s.get("support"):
-            text(sld, X0, 5.25, 7.6, 0.5, s["support"], size=16, color=GREEN)
-        return sld
+            text(sld, X0 + 0.5, 5.45, 10, 0.5, s["support"], size=16, color=GREEN)
+        return mark(sld, True)
+
+    def agenda(s):
+        sld = new(prs, "light", s.get("title") or "Agenda")
+        its = items(s, hi=7)
+        h = min(0.78, 4.9 / max(1, len(its)))
+        for i, it in enumerate(its):
+            y = 1.55 + i * (h + 0.1)
+            box(sld, X0, y, W, h, fill=CREAM, radius=0.18)
+            d = box(sld, X0 + 0.18, y + h / 2 - 0.27, 0.54, 0.54, grad=(GREEN, BLUE, 45), shape=MSO_SHAPE.OVAL)
+            text_in(d, str(i + 1), size=15, bold=True, color=WHITE, align=PP_ALIGN.CENTER, anchor=MSO_ANCHOR.MIDDLE, margin=0)
+            text(sld, X0 + 1.0, y, W - 1.3, h, it.get("heading") or it.get("text") or "", size=18, bold=True,
+                 color=VIOLET, anchor=MSO_ANCHOR.MIDDLE)
+        return mark(sld, False)
 
     def closing(s):
         sld = new(prs, "dark", s.get("title") or "Next steps")
@@ -621,7 +807,15 @@ def render(spec, tpl_path, out, meta, engine_dir):
     if not slides or slides[0].get("layout") != "cover":
         slides = [{"layout": "cover", "notes": ""}] + slides
     for s in slides:
-        sld = draw.get(s.get("layout"), bullets)(s)
+        lay = s.get("layout")
+        if lay == "numbers":
+            s = dict(s, items=[dict(it, **dict(zip(("figure", "heading"), normalize_figure(it.get("figure") or "", it.get("heading") or it.get("text") or ""))))
+                               for it in (s.get("items") or []) if isinstance(it, dict)])
+        sld = draw.get(lay, bullets)(s)
+        if lay in ("cover", "closing"):
+            state["dark"] = True
+        elif lay in ("table", "chart", "image", "hub"):
+            state["dark"] = False
         if s.get("notes"):
             K.notes(sld, s["notes"])
     BL.set_sections(prs, [("Deck", [e.get("id") for e in prs.slides._sldIdLst])])
@@ -640,6 +834,9 @@ SOURCE_KINDS = {
                              "washingtonpost.com cnbc.com axios.com forbes.com fortune.com darkreading.com securityweek.com "
                              "theregister.com bleepingcomputer.com scmagazine.com infosecurity-magazine.com techtarget.com "
                              "computerweekly.com computerworld.com networkworld.com cio.com csoonline.com infoworld.com zdnet.com "
+                             "virtualizationreview.com redmondmag.com rcpmag.com storagereview.com itpro.com techzine.eu "
+                             "datacenterknowledge.com datacenterdynamics.com sdxcentral.com siliconangle.com techrepublic.com "
+                             "informationweek.com venturebeat.com blocksandfiles.com networkcomputing.com channelfutures.com "
                              "crn.com govtech.com statescoop.com nextgov.com fedscoop.com route-fifty.com govexec.com "
                              "americanbanker.com").split(),
 }
@@ -667,28 +864,44 @@ def research_slide(entry, meta, report):
     rules["months"] = months
     topic = str(entry.get("content") or "").strip()
     today = datetime.date.today()
-    try:
-        r = ai_steps.make_topic_research(topic, rules, meta, today.isoformat())
-    except Exception as e:
-        r = {"stats": []}
-        report.append(f"Research slide '{topic[:60]}': research failed ({str(e)[:150]}).")
     allowed = set(rules.get("sources") or [])
-    used, seen = [], set()
-    for st in (r.get("stats") or [])[:8]:
-        label = f"{st.get('figure','')} {str(st.get('claim',''))[:70]} ({st.get('source','')})"
-        if allowed and _kind(st.get("url", "")) not in allowed:
-            report.append(f"DROPPED (source kind not allowed by the requester): {label} {st.get('url','')}")
-            continue
-        key = (rr.compact_figure(st.get("figure", "")), str(st.get("source", "")).lower())
-        if key in seen or len(used) >= 4:
-            continue
-        ok, why = rr.check_stat(st, today, max_days=int(months * 30.5))
-        if not ok:
-            report.append(f"DROPPED ({why}): {label} {st.get('url','')}")
-            continue
-        seen.add(key)
-        used.append(st)
-        report.append(f"USED (found on the page, {st.get('year','')}): {label} {st.get('url','')}")
+    used, seen, dropped = [], set(), []
+    r = {"stats": []}
+    for attempt in range(2):
+        rules_now = dict(rules)
+        if attempt:
+            rules_now["rules"] = (str(rules.get("rules") or "") + " SECOND PASS: the first search found only figures the build cannot use. "
+                                  "Find figures on pages from analyst firms, government bodies, or established news and trade press "
+                                  "(for example Reuters, CIO Dive, CRN, The Register, TechTarget, Computerworld, Network World, "
+                                  "Virtualization Review, StorageReview, ITPro, Data Center Dynamics, SiliconANGLE). A survey a vendor "
+                                  "commissioned is fine when one of those outlets reports it; link that article, not the vendor's "
+                                  "own press release. These were rejected: " + "; ".join(dropped[:8])).strip()
+        try:
+            r = ai_steps.make_topic_research(topic, rules_now, meta, today.isoformat())
+        except Exception as e:
+            r = {"stats": []}
+            report.append(f"Research slide '{topic[:60]}': research failed ({str(e)[:150]}).")
+        for st in (r.get("stats") or [])[:10]:
+            label = f"{st.get('figure','')} {str(st.get('claim',''))[:70]} ({st.get('source','')})"
+            if allowed and _kind(st.get("url", "")) not in allowed:
+                report.append(f"DROPPED (source kind not allowed by the requester): {label} {st.get('url','')}")
+                dropped.append(f"{st.get('url','')} (source kind not allowed)")
+                continue
+            key = (rr.compact_figure(st.get("figure", "")), str(st.get("source", "")).lower())
+            if key in seen or len(used) >= 4:
+                continue
+            ok, why = rr.check_stat(st, today, max_days=int(months * 30.5))
+            if not ok:
+                report.append(f"DROPPED ({why}): {label} {st.get('url','')}")
+                dropped.append(f"{st.get('url','')} ({why})")
+                continue
+            seen.add(key)
+            used.append(st)
+            report.append(f"USED (found on the page, {st.get('year','')}): {label} {st.get('url','')}")
+        if len(used) >= 2:
+            break
+        if attempt == 0:
+            report.append(f"Research slide '{topic[:60]}': fewer than two figures passed, searching again.")
     title = rr.nodash(r.get("title") or topic[:60] or "What the data shows")
     if len(used) >= 2:
         srcs = []

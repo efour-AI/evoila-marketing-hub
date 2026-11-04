@@ -409,6 +409,9 @@ darkreading.com securityweek.com theregister.com bleepingcomputer.com scmagazine
 techtarget.com computerweekly.com computerworld.com networkworld.com cio.com csoonline.com infoworld.com zdnet.com crn.com
 govtech.com statescoop.com nextgov.com fedscoop.com route-fifty.com govexec.com americanbanker.com
 pewresearch.org brookings.edu rand.org nascio.org naco.org ncsl.org
+virtualizationreview.com redmondmag.com rcpmag.com storagereview.com itpro.com techzine.eu datacenterknowledge.com
+datacenterdynamics.com sdxcentral.com siliconangle.com techrepublic.com informationweek.com venturebeat.com blocksandfiles.com
+networkcomputing.com channelfutures.com
 """.split()
 SOCIAL = ("linkedin.com", "facebook.com", "x.com", "twitter.com", "medium.com", "reddit.com", "youtube.com", "substack.com", "quora.com")
 
