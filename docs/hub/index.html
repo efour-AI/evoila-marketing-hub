@@ -91,6 +91,7 @@ details[open] .iname::before{transform:rotate(90deg)}
 .update{white-space:pre-wrap;background:var(--card);border:1px solid var(--line);border-radius:8px;padding:8px 10px;font-size:13px;margin:6px 0 10px}
 .tasks{list-style:none;margin:6px 0 0;padding:0}
 .tasks li.taskrow{display:block}
+details.more>summary{list-style:none;cursor:pointer;padding:10px 2px;font-size:13px;font-weight:600;color:var(--blue)}details.more>summary::-webkit-details-marker{display:none}
 .taskrow summary{cursor:pointer;list-style:none;display:flex;flex-direction:column;gap:2px}.taskrow summary::-webkit-details-marker{display:none}.taskrow summary .t::before{content:"▸ ";color:var(--muted,#888)}.taskrow details[open] summary .t::before{content:"▾ "}.taskrow .tbody{padding:6px 0 4px 14px}.taskrow input[type=date]{font:inherit;padding:6px 8px;border:1px solid var(--line);border-radius:8px}
 .tasks li{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px dashed var(--line);font-size:13px}
 .tasks li span.t{flex:1}
@@ -504,9 +505,17 @@ function strategy(admin){
     const w=el("div","goal");w.id="done-tasks";
     const top=el("div","objhead");const gt=el("div");gt.appendChild(el("h3",null,"Recently completed"));top.appendChild(gt);w.appendChild(top);
     w.appendChild(el("p","objsum",closed.length+" task"+(closed.length===1?"":"s")+" closed in the last three weeks."));
-    const box=el("div","inits");
-    closed.forEach(([t,f,ce])=>{const card=taskCard(f,admin,null);const note=ce.text.replace(/^Closed\.?\s*/,"");
-      card.querySelector(".imeta").textContent="Closed "+fmt(ce.date)+(ce.who?" by "+first(ce.who):"")+(note?" · "+note.split("\n")[0]:"");box.appendChild(card);});
+    const box=el("div","inits");const SHOW=3;
+    const mk=([t,f,ce])=>{const card=taskCard(f,admin,null);const note=ce.text.replace(/^Closed\.?\s*/,"");
+      card.querySelector(".imeta").textContent="Closed "+fmt(ce.date)+(ce.who?" by "+first(ce.who):"")+(note?" · "+note.split("\n")[0]:"");return card;};
+    closed.slice(0,SHOW).forEach(x=>box.appendChild(mk(x)));
+    if(closed.length>SHOW){
+      const more=el("details","more");more.dataset.key="done-more";
+      const sm=el("summary");sm.textContent="Show all "+closed.length;more.appendChild(sm);
+      const inner=el("div","inits");inner.style.borderTop="0";inner.style.margin="0";closed.slice(SHOW).forEach(x=>inner.appendChild(mk(x)));more.appendChild(inner);
+      more.addEventListener("toggle",()=>{sm.textContent=more.open?"Show fewer":"Show all "+closed.length;});
+      box.appendChild(more);
+    }
     w.appendChild(box);c.appendChild(w);
   }
   return c;
