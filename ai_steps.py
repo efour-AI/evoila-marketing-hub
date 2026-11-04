@@ -296,7 +296,7 @@ FIELDS
 - title: the point of the slide in under 60 characters (for example: Downtime is getting more expensive). Never alarmist.
 - takeaway: one sentence under 110 characters tying the numbers to the presenter's point, without naming evoila or promising outcomes.
 - talking_point: one sentence telling the presenter how to land the slide.
-- figure: the number exactly as printed, short (772, 4%, $7.42 million, 1 in 3).
+- figure: the number exactly as printed, short (772, 4%, $7.42 million, 1 in 3). Prefer headline shares and totals that answer the presenter's question directly over small year-on-year changes.
 - claim: a plain fragment under 14 words that completes the figure, in the source's own terms. No spin.
 - source: publisher and report name, short, no year.
 - published: YYYY-MM-DD or YYYY-MM as printed on the page.

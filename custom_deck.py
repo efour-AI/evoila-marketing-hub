@@ -82,10 +82,10 @@ LAYOUTS (choose the one that fits each entry; honor the requester's pick unless 
 - agenda: title + 3 to 6 items (heading only, under 40 characters each).
 - statement: dark slide with one big message. kicker (under 30 characters, optional), statement (under 110 characters), support (one sentence under 140 characters, optional).
 - bullets: title + 3 to 6 items; each item has an optional heading (2 to 4 words, bolded) and text (under 110 characters).
-- columns: title + 2 or 3 items; each item has a heading (under 32 characters) and 2 to 4 points (under 75 characters each).
+- columns: title + 2 or 3 items; each item has a heading (under 32 characters), an icon from the allowed list that fits the heading, and 2 to 4 points (under 75 characters each).
 - cards: title + 3 or 4 items; each item has a heading (under 30 characters), text (under 95 characters) and an icon from the allowed list.
 - numbers: title + 2 to 4 items; each item has figure (short, at most 8 characters, for example 40%, 3x, $1.5T, Oct 2027) and heading (the label, under 60 characters); source (who published the figures). The heading completes the figure in lower case where it reads on from it (for example "of enterprises run ..."). Only use figures the requester supplied. If they asked for numbers without giving them, use bracketed placeholders such as [figure] and say in the notes what to fill in.
-- steps: title + 3 to 5 items; each item has a heading (under 28 characters) and text (under 90 characters).
+- steps: title + 3 to 5 items; each item has a heading (under 20 characters, one or two words) and text (under 90 characters).
 - comparison: title + headers (2 or 3 column names, the first column holds row labels and has no header) + 2 to 5 rows; each row has a label (under 28 characters) and one short cell per header (under 60 characters).
 - quote: dark slide. statement is the quote (under 160 characters, only words the requester supplied), support is the attribution.
 - closing: dark slide, usually last. title (for example Next steps) + up to 3 items (heading only, under 80 characters). The presenters' contact cards are added automatically.
@@ -207,6 +207,8 @@ def normalize_figure(fig, label):
         f = (f"{v / 1e9:.1f}B" if v >= 1e9 else f"{v / 1e6:.1f}M").replace(".0", "")
     for long, short in MONTHS.items():
         f = re.sub(r"\b" + long + r"\b", short, f)
+    f = re.sub(r"^(\d+(?:\.\d+)?)\s*percentage points?$", r"+\1 pts", f, flags=re.I)
+    f = re.sub(r"^(\d+(?:\.\d+)?)\s*percent$", r"\1%", f, flags=re.I)
     return f, l
 
 
