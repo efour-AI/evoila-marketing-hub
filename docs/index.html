@@ -548,8 +548,8 @@ function taskBody(t,admin,extra,cls){
         await refreshInPlace();toast("Closed: "+t.Task);}
       catch(err){cbtn.disabled=false;btn.disabled=false;cbtn.textContent="Close task";toast("That didn't save. Try again in a minute.",true);}
     };
-    const brow=el("div");brow.style.display="grid";brow.style.gridTemplateColumns="2fr 1fr";brow.style.gap="6px";brow.append(btn,cbtn);
-    ta.placeholder="What moved? Or, to close it: what was done (added with today's date)";
+    const brow=el("div");brow.style.display="grid";brow.style.gridTemplateColumns="2fr 1fr";brow.style.gap="6px";if(t.Status==="Closed"){brow.style.gridTemplateColumns="1fr";brow.append(btn);ta.placeholder="To reopen, set the status to Open and say why (added with today's date)";}else brow.append(btn,cbtn);
+    if(t.Status!=="Closed")ta.placeholder="What moved? Or, to close it: what was done (added with today's date)";
     e.append(row,ta,brow);if(extra)e.appendChild(extra);b.appendChild(e);
   }
   return b;
