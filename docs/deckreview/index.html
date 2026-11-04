@@ -65,6 +65,9 @@ textarea{width:100%;font:inherit;font-size:14.5px;line-height:1.5;color:var(--in
 .chk{display:flex;gap:10px;align-items:flex-start;font-size:13.5px;line-height:1.4}
 .chk input{width:18px;height:18px;margin:2px 0 0;accent-color:var(--indigo)}
 .hint{font-size:12.5px;color:var(--muted)}
+.inl{background:var(--soft);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:8px}
+.inl label{font-size:12px;color:var(--muted);font-weight:600}
+.inl textarea{font:inherit;font-size:14px;line-height:1.45;border:1px solid var(--line);border-radius:10px;padding:8px 10px;width:100%;box-sizing:border-box;background:var(--card);color:var(--ink);resize:vertical}
 .made{font-size:12px;color:var(--muted);margin-top:6px;line-height:1.5}
 .made b{color:var(--ink);font-weight:600}
 .rw{display:flex;flex-wrap:wrap;gap:8px;margin-top:10px}
@@ -110,7 +113,11 @@ button:focus-visible,a:focus-visible,textarea:focus-visible,input:focus-visible,
 .lb .x:hover{background:rgba(255,255,255,.28)}
 .lb .meta{color:#fff;margin-top:14px;font-size:14px;text-align:center;max-width:90vw}
 .lb .meta b{font-weight:600}.lb .meta small{display:block;opacity:.65;font-size:12px;margin-top:3px}
-.lb .go{margin-top:10px;font:inherit;font-size:13px;font-weight:600;color:#fff;background:none;border:1px solid rgba(255,255,255,.4);border-radius:99px;padding:7px 14px;cursor:pointer}
+.lb .lbacts{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap;justify-content:center}
+.lb .ok{font:inherit;font-size:14px;font-weight:600;color:#1F1534;background:#0BD7A1;border:0;border-radius:99px;padding:9px 18px;cursor:pointer;min-height:40px}
+.lb .ok.done{background:rgba(11,215,161,.18);color:#0BD7A1;box-shadow:inset 0 0 0 1px #0BD7A1}
+.lb .st{display:inline-block;margin-left:10px;font-size:12px;padding:2px 9px;border-radius:99px;background:rgba(255,255,255,.14)}
+.lb .go{font:inherit;font-size:13px;font-weight:600;color:#fff;background:none;border:1px solid rgba(255,255,255,.4);border-radius:99px;padding:7px 14px;cursor:pointer}
 @media (max-width:640px){.lb .stage{width:94vw}.lb .nav{top:auto;bottom:16px;transform:none}.lb .meta{margin-bottom:60px}}
 </style>
 </head>
@@ -249,7 +256,7 @@ function save(now){
   clearTimeout(saveTimer);$("#saved")&&($("#saved").textContent="Saving…");
   saveTimer=setTimeout(async()=>{
     ST.updated=new Date().toISOString();ST.by=ME;
-    try{await callJSON({a:"decksave",id:DECK,state:JSON.stringify(ST)});$("#saved")&&($("#saved").textContent="Saved");}
+    try{await callJSON({a:"decksave",id:DECK,state:JSON.stringify(ST,(k,v)=>k==="inline"||k==="open"?undefined:v)});$("#saved")&&($("#saved").textContent="Saved");}
     catch(e){$("#saved")&&($("#saved").textContent="Not saved, check your connection");}
   },now?0:1200);
 }
@@ -317,10 +324,14 @@ function slideCard(s,img){
   else if(x.reworked)badge=["Rebuilt, take a look","chg"];
   hd.appendChild(el("span","badge "+badge[1],badge[0]));b.appendChild(hd);
   // text on the slide (with kept changes shown)
+  if(x.inline){b.appendChild(inlineEditor(s,x));}else{
   const det=el("details","txt");const sm=el("summary",null,x.kept?"Text on this slide, with your change":"Text on this slide");det.appendChild(sm);
   const lines=el("div","lines");
   s.boxes.forEach(bx=>{const aft=x.kept&&x.after&&x.after[bx.k];(aft||bx.paras).forEach(p=>{if(p)lines.appendChild(el("p",aft?"new":null,p));});});
-  det.appendChild(lines);if(x.kept)det.open=true;b.appendChild(det);
+  det.appendChild(lines);if(x.kept)det.open=true;
+  const eb=btn("","✎  Edit the text",()=>{x.inline=true;redraw(s.n);setTimeout(()=>{const t=document.querySelector("#slide-"+s.n+" .inl textarea");t&&t.focus();},30);});
+  eb.style.marginTop="8px";eb.style.fontSize="13px";eb.style.minHeight="34px";eb.style.padding="6px 12px";det.appendChild(eb);
+  b.appendChild(det);}
   // actions
   const acts=el("div","acts");
   const g=btn(x.status==="good"?"on":"","✓  Looks good",()=>{if(x.status==="good"){delete x.status;}else{Object.assign(x,{status:"good",applied:false,kept:false});delete x.after;delete x.proposal;delete x.open;}redraw(s.n);changed();});g.setAttribute("aria-pressed",x.status==="good");
@@ -334,14 +345,14 @@ function slideCard(s,img){
   else if(x.open==="redesign")b.appendChild(redesignPanel(s,x));
   else if(x.open==="research")b.appendChild(researchPanel(s,x));
   if(x.kept){const r=el("div","acts");r.appendChild(el("span","hint",x.library?"Change kept. It will also go to Kevin as a fix for the slide library.":"Change kept, for this deck only."));
-    r.appendChild(btn("link","Edit again",()=>{x.kept=false;x.applied=false;redraw(s.n);changed();}));b.appendChild(r);}
+    r.appendChild(btn("link","Edit again",()=>{x.inline=true;redraw(s.n);}));r.appendChild(btn("link","Undo my change",()=>{cancelWork(x);delete x.after;redraw(s.n);changed();}));b.appendChild(r);}
   card.append(th,b);return card;
 }
 function redraw(n){const s=TEXT.find(t=>String(t.n)===String(n));const prev=F[K.prev]||[];const i=TEXT.indexOf(s);const old=$("#slide-"+n);if(old&&s)old.replaceWith(slideCard(s,prev[i]));}
 
 function notePanel(s,x){
   const p=el("div","panel");
-  const lab=el("label","l","What should change on this slide?");lab.htmlFor="note-"+s.n;
+  const lab=el("label","l","Describe the change and AI will rewrite the slide");lab.htmlFor="note-"+s.n;
   const ta=el("textarea");ta.id="note-"+s.n;ta.rows=3;ta.value=x.note||"";ta.placeholder="For example: name the account in the headline, use the healthcare reference, shorten the third line.";
   ta.oninput=()=>{x.note=ta.value;save();};
   const ck=el("label","chk");const cb=el("input");cb.type="checkbox";cb.checked=!!x.library;cb.onchange=()=>{x.library=cb.checked;save();};
@@ -362,9 +373,28 @@ function notePanel(s,x){
     }catch(e){ap.disabled=false;ap.textContent="Apply change";
       const er=el("div","msg err","The rewrite didn't come back just now. Try again, or edit the words yourself.");p.appendChild(er);}
   });
-  row.append(ap,btn("link","Cancel",()=>{cancelWork(x);redraw(s.n);changed();}),btn("link","Edit the words myself",()=>{x.proposal={boxes:{},summary:"",manual:true};x.applied=true;redraw(s.n);}));
-  p.append(lab,ta,ck,row,el("div","hint","Only the words change. Layout, logo and colors stay as they are."));
+  row.append(ap,btn("link","Cancel",()=>{cancelWork(x);redraw(s.n);changed();}));
+  p.append(lab,ta,ck,row,el("div","hint","Want to type the change yourself? Use Edit the text above. Layout, logo and colors stay as they are."));
   return p;
+}
+function inlineEditor(s,x){
+  const p=el("div","inl");p.appendChild(el("div","count","Edit the text on this slide"));
+  const fields={};
+  s.boxes.forEach((bx,i)=>{const cur=(x.kept&&x.after&&x.after[bx.k])||bx.paras;if(!cur.some(t=>t))return;
+    const id="in-"+s.n+"-"+i;const l=el("label",null,s.boxes.length>1?"Text box "+(i+1):"Text");l.htmlFor=id;
+    const ta=el("textarea");ta.id=id;ta.rows=Math.min(7,Math.max(1,cur.length+(cur.join(" ").length>90?1:0)));ta.value=cur.join("\n");fields[bx.k]=ta;p.append(l,ta);});
+  p.appendChild(el("div","hint","One line per paragraph, as on the slide. Only the words change; layout, logo and colors stay."));
+  const row=el("div","acts");
+  row.append(btn("primary","Save my changes",()=>{
+    const after=Object.assign({},x.kept&&x.after?x.after:{});
+    Object.keys(fields).forEach(k=>{const v=fields[k].value.split("\n").map(t=>t.trim());while(v.length&&!v[v.length-1])v.pop();
+      const old=(s.boxes.find(b=>b.k===k)||{}).paras||[];if(JSON.stringify(v)!==JSON.stringify(old))after[k]=v;else delete after[k];});
+    delete x.inline;
+    if(Object.keys(after).length){Object.assign(x,{status:"work",kept:true,applied:true,after});if(!x.note)x.note="Edited by hand";delete x.proposal;}
+    else if(x.kept){cancelWork(x);}
+    redraw(s.n);changed();}),
+    btn("link","Cancel",()=>{delete x.inline;redraw(s.n);}));
+  p.appendChild(row);return p;
 }
 function cancelWork(x){delete x.status;delete x.note;delete x.proposal;delete x.library;x.applied=false;x.kept=false;}
 function redesignPanel(s,x){
@@ -457,7 +487,7 @@ start();
  <div class="stage"><img id="lbi" alt=""></div>
  <button type="button" class="nav next" id="lbn" aria-label="Next slide">›</button>
  <div class="meta" id="lbm"></div>
- <button type="button" class="go" id="lbg">Review this slide</button>
+ <div class="lbacts"><button type="button" class="ok" id="lbok">✓  Looks good</button><button type="button" class="go" id="lbg">Edit or comment</button></div>
 </div>
 <script>
 (function(){
@@ -465,12 +495,21 @@ start();
  function build(){const prev=F[K.prev]||[];items=[];TEXT.forEach((s,j)=>{const p=prev[j];if(p)items.push({n:String(s.n),title:s.title||("Slide "+s.n),url:p.url,thumb:(p.thumbnails&&p.thumbnails.large&&p.thumbnails.large.url)||p.url});});}
  function show(){const it=items[i];if(!it)return;im.src=it.thumb;const full=new Image();full.onload=()=>{if(items[i]===it)im.src=it.url;};full.src=it.url;im.alt="Slide "+it.n+": "+it.title;
   document.getElementById("lbm").innerHTML="";const m=document.getElementById("lbm");const b=document.createElement("b");b.textContent="Slide "+it.n+"  ·  "+it.title;const sm=document.createElement("small");sm.textContent=(i+1)+" of "+items.length+"   ←  →  to move, Esc to close";m.append(b,sm);
+  const x=slideState(it.n),ok=document.getElementById("lbok");
+  const stt=x.status==="good"?"Looks good":x.kept?"Changed":x.status==="work"?"Needs work":x.status==="redesign"?"Redesign requested":x.status==="research"?"New research requested":x.reworked?"Rebuilt, take a look":"Not reviewed";
+  const tag=document.createElement("span");tag.className="st";tag.textContent=stt;b.appendChild(tag);
+  const can=F[K.status]==="In review";ok.style.display=can?"":"none";document.getElementById("lbg").style.display=can?"":"none";
+  ok.classList.toggle("done",x.status==="good");ok.textContent=x.status==="good"?"✓  Accepted (click to undo)":"✓  Looks good";
   document.getElementById("lbp").disabled=i===0;document.getElementById("lbn").disabled=i===items.length-1;
   [i-1,i+1].forEach(k=>{if(items[k]){const pre=new Image();pre.src=items[k].url;}});}
  window.lbOpen=function(n){build();const k=items.findIndex(x=>x.n===n);if(k<0)return;i=k;last=document.activeElement;lb.classList.add("on");document.body.style.overflow="hidden";show();document.getElementById("lbx").focus();};
  function close(){lb.classList.remove("on");document.body.style.overflow="";if(last&&last.focus)last.focus();}
  function go(d){const k=i+d;if(k>=0&&k<items.length){i=k;show();}}
  document.getElementById("lbx").onclick=close;document.getElementById("lbp").onclick=()=>go(-1);document.getElementById("lbn").onclick=()=>go(1);
+ document.getElementById("lbok").onclick=()=>{const it=items[i];if(!it)return;const x=slideState(it.n);
+  if(x.status==="good"){delete x.status;}else{Object.assign(x,{status:"good",applied:false,kept:false});delete x.after;delete x.proposal;delete x.open;delete x.inline;delete x.redesign;delete x.research;}
+  redraw(it.n);changed();
+  if(x.status==="good"&&i<items.length-1)setTimeout(()=>go(1),350);else show();};
  document.getElementById("lbg").onclick=()=>{const n=items[i]&&items[i].n;close();const c=document.getElementById("slide-"+n);if(c)c.scrollIntoView({behavior:"smooth",block:"start"});};
  lb.addEventListener("click",e=>{if(e.target===lb||e.target.classList.contains("stage"))close();});
  document.addEventListener("keydown",e=>{if(!lb.classList.contains("on"))return;if(e.key==="Escape")close();else if(e.key==="ArrowLeft")go(-1);else if(e.key==="ArrowRight")go(1);else if(e.key==="Tab"){const f=[...lb.querySelectorAll("button:not(:disabled)")];const a=f.indexOf(document.activeElement);if(e.shiftKey&&a<=0){e.preventDefault();f[f.length-1].focus();}else if(!e.shiftKey&&a===f.length-1){e.preventDefault();f[0].focus();}}});
