@@ -391,6 +391,7 @@ function actions(admin,author){
   add("▣","Walking deck","Pick an audience, get a tailored deck by email",BASE+"deck/",()=>track("Request deck","Walking deck"));
   add("✎","Build your own deck","Outline it slide by slide, we build it on brand",BASE+"build/",()=>track("Custom deck","Opened builder"));
   add("⇄","Convert your deck","Upload your own slides, get them back in the evoila template",BASE+"convert/",()=>track("Convert deck","Opened converter"));
+  add("❏","One-pager","Send the evoila US one-pager, or describe a change for a new version",BASE+"onepager/",()=>track("One-pager","Opened"));
   if(author)add("✦","Create a post","Topic and bullets in, a finished post with an image in a minute",BASE+"create/");
   else if(admin)add("✦","Create a post for an author","Topic and bullets in; it lands in their queue in their voice",BASE+"create/");
   return g;
@@ -683,12 +684,12 @@ function resCard(r){
 /* ---------- decks ---------- */
 const DECKS_SINCE="2026-11-04T22:00:00Z";   /* decks requested before the new review process are not listed */
 function decks(me,admin){
-  const c=section("decks","Decks","Request a tailored deck, build your own, convert one you made, or reuse one the team made");
+  const c=section("decks","Decks","Request a tailored deck, build your own, convert one you made, send the one-pager, or reuse one the team made");
   const SHOW=["Sent","Final","Finalizing","In review","Ready","Building"];
   const fresh=d=>Date.parse(d["Requested at"]||d.Created||0)>=Date.parse(DECKS_SINCE);
   const list=D.decks.map(d=>Object.assign({_id:d.id},d.fields)).filter(d=>SHOW.includes(d.Status)&&fresh(d)).slice(0,12);
   const row=el("div","row");row.style.marginBottom="10px";
-  const a1=el("a","btn sm","Request a walking deck");a1.href=BASE+"deck/";const a2=el("a","btn ghost sm","Build your own deck");a2.href=BASE+"build/";const a3=el("a","btn ghost sm","Convert your deck");a3.href=BASE+"convert/";a3.onclick=()=>track("Convert deck","Opened converter");row.append(a1,a2,a3);c.appendChild(row);
+  const a1=el("a","btn sm","Request a walking deck");a1.href=BASE+"deck/";const a2=el("a","btn ghost sm","Build your own deck");a2.href=BASE+"build/";const a3=el("a","btn ghost sm","Convert your deck");a3.href=BASE+"convert/";a3.onclick=()=>track("Convert deck","Opened converter");const a4=el("a","btn ghost sm","One-pager");a4.href=BASE+"onepager/";a4.onclick=()=>track("One-pager","Opened");row.append(a1,a2,a3,a4);c.appendChild(row);
   D.decks.filter(d=>fresh(d.fields)&&d.fields.Status==="In review"&&String(d.fields["Your email"]||"").toLowerCase()===String(D.email).toLowerCase()).forEach(d=>{
     const w=el("div","row");w.style.cssText="background:#FDF1D8;border-radius:10px;padding:10px 12px;margin-bottom:10px;align-items:center;justify-content:space-between";
     w.appendChild(el("b",null,"Your deck for "+(d.fields["Company you are meeting with"]||"your meeting")+" is waiting for your review"));

@@ -1,0 +1,15 @@
+{
+  "_about": "Checked on every one-pager version before it can become Current. A version that breaks a rule is set to Problems found and the current version stays live. Add a term here to ban it on the one-pager.",
+  "banned_terms": [
+    {"term": "VCSP", "why": "Broadcom sales reps read VCSP as a threat to their commissions. Kept off the one-pager (Kevin, 2026-11-05)."},
+    {"term": "Cloud Service Provider", "why": "Same program as VCSP, spelled out."},
+    {"term": "Broadcom Advantage Program", "why": "Wrong name. The program is the Broadcom Expert Advantage Partner Program."},
+    {"term": "Broadcom Advantage Partner Program", "why": "Wrong name. The program is the Broadcom Expert Advantage Partner Program."}
+  ],
+  "banned_characters": [
+    {"char": "—", "why": "No em dashes in evoila copy. Use a comma, colon or period."}
+  ],
+  "case_rules": [
+    {"pattern": "\\bEvoila\\b|\\bEVOILA\\b", "why": "evoila is always lowercase."}
+  ]
+}

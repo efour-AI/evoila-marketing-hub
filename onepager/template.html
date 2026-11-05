@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>evoila US one-pager</title>
+<!--
+  evoila US one-pager template. Layout, colors and artwork live here and never change with an edit.
+  All words come from copy.json (window.COPY), filled in by render() below. Text wrapped in **double
+  asterisks** is set bold. Every box marked data-fit has a fixed size: onepager.py fails the build
+  if its text no longer fits, so a too-long rewrite can never ship clipped.
+  Measurements are in points on a US Letter page (612 x 792), taken from the May 2026 InDesign file.
+-->
+<style>
+@font-face{font-family:"Lexend Deca";font-weight:400;src:url(assets/lexend-deca-latin-400-normal.woff2) format("woff2")}
+@font-face{font-family:"Lexend Deca";font-weight:500;src:url(assets/lexend-deca-latin-500-normal.woff2) format("woff2")}
+@font-face{font-family:"Lexend Deca";font-weight:700;src:url(assets/lexend-deca-latin-700-normal.woff2) format("woff2")}
+@font-face{font-family:"Lexend Deca";font-weight:900;src:url(assets/lexend-deca-latin-900-normal.woff2) format("woff2")}
+@page{size:612pt 792pt;margin:0}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{width:612pt;height:792pt}
+body{position:relative;overflow:hidden;background:#fff;color:#000;font-family:"Lexend Deca",sans-serif;font-size:7.5pt;line-height:10.5pt;
+  -webkit-print-color-adjust:exact;print-color-adjust:exact;font-kerning:normal;letter-spacing:-0.011em}
+.abs{position:absolute}
+b,strong{font-weight:700}
+h2{font-weight:500;font-size:10pt;line-height:12pt}
+.beige{background:#f6efeb}
+
+#headline{left:28.3pt;top:21.4pt;width:282pt;height:56pt;font-weight:900;font-size:14.66pt;line-height:17.6pt;color:#1f1534}
+#badgepanel{left:313.1pt;top:-18.8pt;width:151.8pt;height:92.6pt;border-radius:12pt}
+#badges{left:318pt;top:6pt;width:142pt;height:60pt}
+#logo{left:488.3pt;top:27.8pt;width:95.9pt;height:23.2pt}
+
+#intro{left:28.5pt;top:87pt;width:314pt;height:48pt}
+#callout{left:28.3pt;top:136.8pt;width:318.1pt;height:69pt;border-radius:12pt;background:#a99c91;color:#fff;padding:7pt 8.6pt 0}
+#callout .t{font-size:11pt;line-height:12pt;height:27pt}
+#callout .b{margin-top:7.5pt;height:22pt}
+
+#statlabel{left:364pt;top:87pt;width:220pt;height:12pt}
+.stat{width:104.5pt;height:47.2pt;border-radius:12pt;padding:5.6pt 9pt 0}
+.stat .v{font-weight:700;font-size:22pt;line-height:26pt;color:#1f1534;white-space:nowrap;height:26pt}
+.stat .l{margin-top:1.8pt;height:12pt;white-space:nowrap}
+
+#captitle{left:28.3pt;top:212.3pt}
+.cap{top:228.8pt;width:128.2pt;height:139.4pt;border-radius:12pt;padding:7.6pt 3pt 0 9.9pt}
+.cap{display:flex;flex-direction:column}
+.cap .t{font-weight:700}
+.cap ul{list-style:none;margin-top:2.6pt}
+.cap li{position:relative;padding-left:5.7pt;margin-bottom:2.8pt}
+.cap li:before{content:"\2022";position:absolute;left:0}
+.capbody{flex:1;min-height:0;overflow:hidden;padding-bottom:4pt}
+
+#engtitle{left:28.3pt;top:376.5pt}
+#vertitle{left:313.1pt;top:376.5pt}
+.list{top:395.3pt;height:138pt}
+#eng{left:28.3pt;width:274pt}
+#ver{left:313.1pt;width:272pt}
+.list p{margin-bottom:5.7pt}
+
+#creds{left:28.8pt;top:536.5pt;width:269.6pt;height:28.1pt;border:1pt solid #f6efeb;border-radius:6pt;padding:3.6pt 6pt 0;font-weight:700}
+#facts{left:28.7pt;top:577pt;width:263.3pt;height:115pt}
+#facts .f{padding-bottom:5.8pt;margin-bottom:5.8pt;border-bottom:.5pt solid #a99c91}
+#facts .f:last-child{border-bottom:0;margin-bottom:0}
+
+#contacts{left:18pt;top:695.5pt;width:280.9pt;height:68.2pt;border-radius:12pt}
+#contacts .rule{left:166pt;top:13.7pt;width:0;height:44.2pt;border-left:.5pt solid #a99c91}
+.person{top:9.6pt;height:56pt}
+.person .gap{height:5.6pt}
+#p1{left:68.5pt;width:95pt}
+#p2{left:184pt;width:94pt}
+#blobs{left:0;top:660pt;width:80pt;height:132pt;z-index:2}
+
+#trust{left:313.1pt;top:536pt;width:270.6pt;height:227.7pt;border-radius:12pt;background:#0ad6a0;padding:7.4pt 8pt 0 11.3pt}
+#trust h2{margin-left:2pt;margin-bottom:9pt}
+#trustbody{height:194pt}
+#trust .i{margin-bottom:7.1pt}
+
+#footer{left:0;top:773pt;width:612pt;text-align:center;font-size:6.44pt;line-height:8pt;color:#a99c91;height:9pt}
+.overflow{outline:2pt solid #e00 !important;outline-offset:-1pt}
+</style>
+</head>
+<body>
+<div id="badgepanel" class="abs beige"></div>
+<img id="badges" class="abs" src="assets/badges.png" alt="Broadcom award badges">
+<img id="logo" class="abs" src="assets/logo.svg" alt="evoila">
+<div id="headline" class="abs" data-fit="Headline"></div>
+<div id="intro" class="abs" data-fit="Intro paragraph"></div>
+<div id="callout" class="abs"><div class="t" data-fit="Callout headline"></div><div class="b" data-fit="Callout text"></div></div>
+<div id="statlabel" class="abs" data-fit="Stats label"></div>
+<div id="stats"></div>
+<h2 id="captitle" class="abs"></h2>
+<div id="caps"></div>
+<h2 id="engtitle" class="abs"></h2>
+<div id="eng" class="abs list" data-fit="Engagement models"></div>
+<h2 id="vertitle" class="abs"></h2>
+<div id="ver" class="abs list" data-fit="Industry verticals"></div>
+<div id="creds" class="abs" data-fit="Credentials bar"></div>
+<div id="facts" class="abs" data-fit="Operations facts"></div>
+<div id="contacts" class="abs beige"><div class="rule abs"></div><div id="p1" class="abs person" data-fit="Contact 1"></div><div id="p2" class="abs person" data-fit="Contact 2"></div></div>
+<img id="blobs" class="abs" src="assets/blobs.svg" alt="">
+<div id="trust" class="abs"><h2></h2><div id="trustbody" data-fit="Why partners trust evoila"></div></div>
+<div id="footer" class="abs" data-fit="Footer"></div>
+<script>
+function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
+function md(s){return esc(s).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/\n/g,"<br>");}
+function $(id){return document.getElementById(id);}
+function render(c){
+  $("headline").innerHTML=c.headline.map(md).join("<br>");
+  $("intro").innerHTML=md(c.intro);
+  document.querySelector("#callout .t").innerHTML=md(c.callout.headline);
+  document.querySelector("#callout .b").innerHTML=md(c.callout.text);
+  $("statlabel").innerHTML=md(c.stats_label);
+  const pos=[[360.5,102.9],[479.1,102.9],[360.5,160.8],[479.1,160.8]];
+  $("stats").innerHTML=c.stats.slice(0,4).map((s,i)=>`<div class="abs stat beige" style="left:${pos[i][0]}pt;top:${pos[i][1]}pt"><div class="v" data-fit="Stat ${i+1} number">${md(s.value)}</div><div class="l" data-fit="Stat ${i+1} label">${md(s.label)}</div></div>`).join("");
+  $("captitle").innerHTML=md(c.capabilities_title);
+  const cx=[28.5,170.7,313.1,455.5];
+  $("caps").innerHTML=c.capabilities.slice(0,4).map((k,i)=>`<div class="abs cap beige" style="left:${cx[i]}pt"><div class="t" data-fit="Capability ${i+1} title">${md(k.title)}</div><div class="capbody" data-fit="Capability ${i+1} list"><ul>${k.items.map(x=>`<li>${md(x)}</li>`).join("")}</ul></div></div>`).join("");
+  $("engtitle").innerHTML=md(c.engagement_title);
+  $("eng").innerHTML=c.engagement.map(e=>`<p><b>${md(e.name)}:</b> ${md(e.text)}</p>`).join("");
+  $("vertitle").innerHTML=md(c.verticals_title);
+  $("ver").innerHTML=c.verticals.map(e=>`<p><b>${md(e.name)}:</b> ${md(e.text)}</p>`).join("");
+  $("creds").innerHTML=c.credentials.map(md).join("<br>");
+  $("facts").innerHTML=c.facts.map(f=>`<div class="f"><b>${md(f.title)}</b><br>${md(f.text)}</div>`).join("");
+  ["p1","p2"].forEach((id,i)=>{const p=c.contacts[i]||{};$(id).innerHTML=`<b>${md(p.name)}</b><br>${md(p.title)}<div class="gap"></div>${md(p.phone)}<br>${md(p.email)}`;});
+  document.querySelector("#trust h2").innerHTML=md(c.trust_title);
+  $("trustbody").innerHTML=c.trust.map((t,i)=>`<div class="i"><b>${i+1}. ${md(t.title)}</b><br>${md(t.text)}</div>`).join("");
+  $("footer").innerHTML=md(c.footer);
+}
+// Returns the names of boxes whose text does not fit, and outlines them in red.
+function fitCheck(){
+  const bad=[];
+  document.querySelectorAll("[data-fit]").forEach(el=>{
+    const over=el.scrollHeight>el.clientHeight+1||el.scrollWidth>el.clientWidth+1;
+    const inner=el.querySelector("ul");
+    const listOver=inner&&inner.getBoundingClientRect().bottom>el.getBoundingClientRect().bottom+1;
+    if(over||listOver){bad.push(el.dataset.fit);el.classList.add("overflow");}
+  });
+  return bad;
+}
+if(window.COPY)render(window.COPY);
+</script>
+</body>
+</html>

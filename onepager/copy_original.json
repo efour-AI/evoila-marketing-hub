@@ -1,0 +1,49 @@
+{
+  "headline": ["Broadcom Global Pinnacle Partner", "VCSP Global Pinnacle", "President‘s Choice 2025"],
+  "intro": "evoila holds a credential combination fewer than a handful of firms worldwide carry — Broadcom Pinnacle Partner, VCSP Global Pinnacle Partner, and the 2025 President‘s Choice Award. Broadcom‘s highest validation of partner performance across execution, collaboration, and customer impact.",
+  "callout": {"headline": "Broadcom licensing changes are forcing enterprise decisions **right now**.", "text": "Certified Broadcom guidance at this level is rare — and one of the rarest credential combinations in the ecosystem."},
+  "stats_label": "Over the last year evoila had",
+  "stats": [{"value": "500k+", "label": "Billable hours"}, {"value": "1,000+", "label": "Projects delivered"}, {"value": "24×7", "label": "Follow-the-sun support"}, {"value": "16", "label": "Broadcom knights"}],
+  "capabilities_title": "Core capabilities",
+  "capabilities": [
+    {"title": "Cloud & Infrastructure Modernization", "items": ["VMware Cloud Foundation", "vSphere, NSX, vSAN, Tanzu", "Private & hybrid cloud architecture", "Kubernetes enablement", "Migration & optimization", "Secure networking & visibility"]},
+    {"title": "Application Modernization & DevSecOps", "items": ["Microservices & APIs", "CI/CD with security built in", "Containerization & Kubernetes", "DevSecOps to NIST & Zero Trust", "App lifecycle optimization"]},
+    {"title": "AI & Intelligent Automation", "items": ["VMware Private AI Foundation", "AI-driven automation & analytics", "Data engineering & pipelines", "AI integration into enterprise", "AI-enhanced security"]},
+    {"title": "IT Operations & Managed Services", "items": ["24×7 global managed services", "Monitoring & incident response", "IT service mgmt & compliance", "Disaster recovery & continuity", "On-prem and cloud support"]}
+  ],
+  "engagement_title": "Engagement models",
+  "engagement": [
+    {"name": "Time & Materials", "text": "Flexible scope, senior consultants — ideal for assessment, discovery, and evolving requirements"},
+    {"name": "Fixed Price", "text": "Defined scope and outcome with predictable enterprise cost — platform implementations and migrations"},
+    {"name": "Milestone-Based", "text": "Payment tied to delivery checkpoints with program governance — large multi-phase enterprise programs"},
+    {"name": "Maintenance & Support", "text": "24×7 Broadcom/VMware M&S; with follow-the-sun global coverage for mission-critical environments"},
+    {"name": "VCSP / Managed Services", "text": "Fully managed infrastructure, security, or platform operations — transfer the operational burden entirely"}
+  ],
+  "verticals_title": "Example industry verticals",
+  "verticals": [
+    {"name": "Government & SLED", "text": "Federal, state, local & education — compliance-aligned infrastructure, high-availability, and secure environments"},
+    {"name": "Financial Services", "text": "Resiliency, security & compliance at scale — high-availability mission-critical systems"},
+    {"name": "Healthcare & Life Sciences", "text": "HIPAA-aligned infrastructure, clinical systems, EHR platforms, and research environments"},
+    {"name": "Manufacturing & Industrial", "text": "OT/IT convergence on VMware platforms, hybrid cloud across plants and facilities"},
+    {"name": "Technology & Media", "text": "Cloud-native Kubernetes/Tanzu environments and CI/CD pipelines built for speed"}
+  ],
+  "credentials": ["President’s Choice Award 2025 | VCSP Partner of the Year 2025", "Broadcom Global Pinnacle Partner | VCSP Global Pinnacle Partner"],
+  "facts": [
+    {"title": "US & Canada Operations", "text": "Colorado Springs, CO | Private & Public Sector |  24×7 support"},
+    {"title": "Global Delivery Organization", "text": "North America, Europe, Middle East & APAC | Established at scale"},
+    {"title": "Channel-Integrated Model", "text": "Turnkey | Traceable | Scalable Clear expectations & objectives | Consistent delivery framework"}
+  ],
+  "contacts": [
+    {"name": "Glen Tindal", "title": "CEO", "phone": "+1 (719) 331-9803", "email": "gtindal@evoila.com"},
+    {"name": "Mark Maisano", "title": "VP Alliances & Strategy", "phone": "+1 (716) 908-3302", "email": "mmaisano@evoila.com"}
+  ],
+  "trust_title": "Why partners trust evoila",
+  "trust": [
+    {"title": "Reduced Delivery Risk", "text": "Validated by Broadcom across technical execution, customer success, and strategic alignment."},
+    {"title": "Faster Deal Velocity", "text": "A partner who understands how to position, sell, and implement Broadcom solutions effectively."},
+    {"title": "Access to Elite Technical Depth", "text": "Dual Pinnacle status across Broadcom and VCSP — one of the rarest combinations globally."},
+    {"title": "End-to-End Execution", "text": "From infrastructure to security to DevSecOps to AI-ready environments — no gaps, no handoffs."},
+    {"title": "Scalable Global Delivery", "text": "24×7 support backed by US and European teams for enterprise and government-grade environments."}
+  ],
+  "footer": "evoila US 2026 | 5550 Tech Center Dr, Suite 305  |  Colorado Springs, CO 80919  |  evoila.com"
+}

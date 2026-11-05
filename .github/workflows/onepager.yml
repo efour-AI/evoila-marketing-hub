@@ -1,0 +1,41 @@
+name: Build one-pager version
+
+# Fired by the Airtable automation "One-pager: build new version" (repository_dispatch onepager-build,
+# record = One-pager Versions row with Status = Building), or by hand from the Actions tab.
+on:
+  repository_dispatch:
+    types: [onepager-build]
+  workflow_dispatch:
+    inputs:
+      record_id:
+        description: "One-pager Versions record ID (rec...)"
+        required: true
+
+# One version at a time, so two edits never both become Current.
+concurrency:
+  group: onepager
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      RECORD_ID: ${{ github.event.client_payload.record_id || github.event.inputs.record_id }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install Playwright (uses the runner's Google Chrome)
+        run: |
+          pip install -q playwright==1.48.0
+          if [ ! -x /usr/bin/google-chrome ]; then python -m playwright install --with-deps chromium; fi
+
+      - name: Build the version
+        env:
+          AIRTABLE_TOKEN: ${{ secrets.AIRTABLE_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python onepager/onepager.py

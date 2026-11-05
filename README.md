@@ -55,3 +55,23 @@ and `AIRTABLE_TOKEN` (Airtable personal access token with `data.records:read` an
 The repo is public, so the build logs print no request data or slide copy.
 To run by hand: Actions tab, "Build walking deck", Run workflow, paste the record ID and the mode
 (`build-deck` or `check-library`).
+
+## One-pager (docs/onepager, onepager/)
+
+The evoila US one-pager is rebuilt from the May 2026 InDesign file as `onepager/template.html` (layout,
+colors, badges, logo, fonts) plus the words, which live in the Airtable table **One-pager Versions** (Copy
+field, JSON in the `onepager/copy.json` format). The Current row is what the hub shows and sends.
+
+1. On the hub page (docs/onepager) anyone with a hub link describes a change, or picks an older version and
+   makes it current again. Make scenario "evoila Hub One-pager" (6920302) adds a row with Status = Building.
+2. Airtable automation "One-pager: build new version" fires `onepager-build`; `.github/workflows/onepager.yml`
+   runs `onepager/onepager.py`: Claude applies the change to the current words, then every version must pass
+   `onepager/rules.json` (no VCSP, no em dashes, evoila lowercase) and the fit check (each box measured in
+   Chrome; text that no longer fits fails). Claude gets two tries to fix a problem. It passes: PDF and preview
+   are attached, the row becomes vN and Current, the old one Previous. It fails: Problems found, the reason is
+   on the row, the requester gets an email ("One-pager: version not published") and the current version stays.
+3. Sending: the hub copies the Current PDF onto a **One-pager Sends** row; "One-pager: send" emails it with
+   the sender in CC and as reply-to, and sets Status = Sent.
+
+To ban another word on the one-pager, add it to `onepager/rules.json`. Layout changes are made in
+`template.html` by hand (check with `python onepager/onepager.py --local onepager/copy.json out/`).

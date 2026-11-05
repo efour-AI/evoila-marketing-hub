@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="robots" content="noindex,nofollow">
+<title>One-pager</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--violet:#1F1534;--indigo:#0D09B5;--blue:#0075E4;--green:#0BD7A1;--bg:#F6F0EB;--card:#fff;--ink:#1F1534;--muted:#6B6478;--line:#E4DDD6;--soft:#FBF8F5;--ok:#0F8F6A;--okbg:#DDF7EE;--bad:#B42318;--badbg:#FDE8E7;--warnbg:#FDF1D8;--warn:#8A5A00}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#17102A;--card:#231A3B;--ink:#F3EEF8;--muted:#B5ACC4;--line:#3A3052;--soft:#2A2046;--okbg:#0F3B30;--ok:#7BE8C6;--badbg:#4A1A1A;--bad:#FF9C93;--blue:#8FB8FF;--warnbg:#3D2E0A;--warn:#F5C96B}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 Inter,system-ui,-apple-system,"Segoe UI",sans-serif}
+a{color:var(--blue)}
+header{background:var(--violet);color:#fff;padding:16px 16px 22px}
+.wrap{max-width:980px;margin:0 auto}
+.top{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.logo{height:22px;width:auto;display:block}
+.back{color:rgba(255,255,255,.85);text-decoration:none;font-size:13.5px;font-weight:600}
+h1{font-size:22px;margin:16px 0 0}
+.sub{color:rgba(255,255,255,.72);margin:2px 0 0;font-size:13.5px}
+main{padding:16px}
+.grid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.05fr);gap:14px;align-items:start}
+@media (max-width:820px){.grid{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;margin:0 0 14px}
+.card h2{font-size:12.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin:0 0 10px}
+.preview{display:block;width:100%;border-radius:8px;border:1px solid var(--line);background:#fff;cursor:zoom-in}
+.meta{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:12px 0 0;flex-wrap:wrap}
+.meta b{font-size:16px}
+.hint{font-size:13px;color:var(--muted)}
+label.l{display:block;font-size:13px;font-weight:600;margin:10px 0 4px}
+input,textarea{width:100%;font:inherit;font-size:15px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:9px;padding:10px}
+textarea{min-height:96px;resize:vertical}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media (max-width:520px){.two{grid-template-columns:1fr}}
+.btn{display:inline-block;font:inherit;font-weight:600;font-size:15px;border:0;border-radius:10px;padding:11px 18px;color:#fff;background:var(--indigo);cursor:pointer;margin-top:12px;text-decoration:none}
+.btn.ghost{background:transparent;color:var(--indigo);border:1px solid var(--line)}
+@media (prefers-color-scheme:dark){.btn.ghost{color:var(--ink)}}
+.btn.sm{font-size:13px;padding:6px 12px;margin-top:0}
+.btn:disabled{opacity:.6;cursor:wait}
+.msg{padding:12px 14px;border-radius:10px;margin:0 0 12px;font-size:14px}
+.msg.err{background:var(--badbg);color:var(--bad)}.msg.ok{background:var(--okbg);color:var(--ok)}.msg.wait{background:var(--warnbg);color:var(--warn)}
+.loading{color:var(--muted);text-align:center;padding:30px 0}
+.hidden{display:none!important}
+ul.changes{margin:8px 0 0;padding-left:18px;font-size:14px}
+.ver{border-top:1px solid var(--line);padding:12px 0}
+.ver:first-of-type{border-top:0;padding-top:0}
+.vh{display:flex;justify-content:space-between;gap:10px;align-items:baseline;flex-wrap:wrap}
+.tag{font-size:11.5px;font-weight:700;border-radius:999px;padding:2px 9px;margin-left:6px;vertical-align:1px}
+.tag.Current{background:var(--okbg);color:var(--ok)}.tag.Building{background:var(--warnbg);color:var(--warn)}
+.tag.Problems{background:var(--badbg);color:var(--bad)}.tag.Previous{background:var(--soft);color:var(--muted);border:1px solid var(--line)}
+.req{font-size:14px;margin:4px 0 0;white-space:pre-wrap}
+.prob{font-size:13.5px;color:var(--bad);white-space:pre-wrap;margin:6px 0 0}
+.acts{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+table{width:100%;border-collapse:collapse;font-size:13.5px}
+td{padding:7px 4px;border-top:1px solid var(--line);vertical-align:top}
+tr:first-child td{border-top:0}
+.zoom{position:fixed;inset:0;background:rgba(10,6,20,.85);display:flex;align-items:flex-start;justify-content:center;overflow:auto;padding:20px;z-index:9}
+.zoom img{max-width:min(1100px,100%);height:auto;background:#fff;border-radius:6px}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+ <div class="top"><svg viewBox="0 0 175.24 41.66" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" class="logo" role="img" aria-label="evoila"><defs></defs><g><path d="M31.95 26.76C31.7 28.61 30.94 34.23 23.13 38.47 20.03 40.15 16.06 41.29 12.24 41.58 11.59 41.63 10.97 41.66 10.38 41.66 7.63 41.66 5.5 41.14 4.52 40.18 3.9 39.63 3.53 38.82 3.53 37.97 3.53 37.47 3.65 36.98 3.88 36.54 4.16 35.93 4.6 35.36 5.2 34.68L5.2 34.68C5.2 34.68 5.45 34.83 5.58 34.91 5.72 34.99 6.05 35.14 6.05 35.14 5.43 35.84 4.96 36.4 4.72 36.95L4.72 36.98C4.54 37.28 4.46 37.62 4.46 37.97 4.46 38.55 4.71 39.11 5.15 39.5 7.11 41.41 15.92 41.32 22.68 37.65 30.07 33.64 30.78 28.38 31.01 26.65 31.58 22.43 29.46 18.25 25.73 16.24 25.82 16.14 25.91 16.05 25.99 15.95 26.13 15.8 26.25 15.66 26.37 15.51 30.32 17.74 32.55 22.23 31.94 26.77Z" fill="#FFFFFF"/><path d="M25.73 16.23C25.12 16.9 24.44 17.62 23.79 18.49 21.7 21.34 21.47 24.64 21.14 26.97 20.32 32.82 14.94 36.9 9.13 36.07 8.03 35.92 7 35.59 6.05 35.13 6.17 35 6.29 34.86 6.41 34.73 6.97 34.11 7.61 33.41 8.2 32.59 10.13 29.94 10.51 26.88 10.79 24.65 10.83 24.38 10.86 24.13 10.89 23.88 11.26 21.17 12.64 18.77 14.81 17.11 16.97 15.45 19.64 14.74 22.33 15.11 23.52 15.27 24.64 15.63 25.69 16.19L25.69 16.19C25.69 16.19 25.73 16.22 25.73 16.22Z" fill="#FFFFFF"/><path d="M27.66 12.87C27.66 13.3 27.55 13.72 27.35 14.08 27.13 14.56 26.79 15.02 26.37 15.51 26.29 15.46 26.23 15.42 26.14 15.38L26.14 15.38C24.99 14.76 23.75 14.36 22.45 14.19 19.52 13.79 16.6 14.56 14.24 16.37 11.88 18.18 10.36 20.8 9.97 23.76 9.93 24.01 9.9 24.27 9.87 24.54 9.59 26.78 9.24 29.58 7.46 32.03 6.89 32.81 6.3 33.46 5.73 34.09 5.68 34.14 5.63 34.2 5.59 34.25L5.59 34.25C5.59 34.25 5.35 34.51 5.35 34.51 5.3 34.56 5.26 34.61 5.21 34.66 1.63 32.53-0.51 28.38 0.11 23.98 0.47 21.42 1.66 16.46 8.75 12.67 15.44 9.09 24.62 8.82 26.82 10.99 27.34 11.45 27.66 12.12 27.66 12.87Z" fill="#FFFFFF"/><path d="M5.58 34.26C5.5 34.35 5.42 34.44 5.34 34.52L5.2 34.67 5.2 34.67C5.25 34.62 5.29 34.57 5.34 34.52L5.58 34.25 5.58 34.25Z" fill="#FFFFFF"/></g><g id="Logo-2"><g><path d="M76.72 40.72 69.67 13.66 74.73 12.34 80.7 35.26 87.51 19.9C88.16 18.13 87.75 16.78 87.46 15.78 87.22 14.94 87 14.53 86.57 13.72L91.63 12.4C92.13 13.33 92.52 14.2 92.85 15.59 93.23 17.12 93.47 18.9 92.83 20.82L83.96 40.76 76.72 40.74 76.72 40.74Z" fill="#FFFFFF"/><path d="M97.33 30.8 97.31 23.18C97.29 16.04 100.91 12.42 108.96 12.42 117.01 12.42 120.78 16.09 120.75 23.18L120.77 30.8C120.82 37.42 117.2 41.61 109.12 41.61 101.04 41.61 97.33 37.1 97.33 30.8L97.33 30.8ZM115.82 23.18C115.8 18.58 113.88 16.68 109.25 16.66 104.53 16.66 102.71 18.55 102.71 23.18L102.71 30.8C102.71 34.9 104.53 37.34 109.33 37.34 114.13 37.34 115.83 35.18 115.83 30.8L115.83 23.18 115.83 23.18Z" fill="#FFFFFF"/><path d="M127.63 13.78 132.88 12.42 132.86 40.72 127.7 40.72 127.63 13.78Z" fill="#FFFFFF"/><path d="M140.43 1.37 145.66 0 145.66 40.7 140.43 40.7 140.43 1.37 140.43 1.37Z" fill="#FFFFFF"/><path d="M175.24 40.72 170.9 40.72 170.42 37.22C167.52 40.07 163.54 41.65 159.61 41.65 154.84 41.65 152.59 38.87 151.96 35.54 151.82 34.82 151.82 34.05 151.79 33.29L151.79 23.05C151.79 16.03 153.92 12.41 163.73 12.41 167.54 12.41 171.98 13.3 175.24 14.38L175.24 40.72 175.24 40.72ZM170.01 17.33C168.28 16.92 166.05 16.61 163.9 16.61 159.13 16.61 157.02 17.98 157.02 23.68L157.02 32.91C157.02 33.63 157.04 34.4 157.14 34.92 157.4 36.29 158.24 37.32 160.14 37.32 164.02 37.32 167.02 35.04 170.02 32.02L170.02 17.33 170.02 17.33Z" fill="#FFFFFF"/><circle cx="130.25" cy="6.59" r="2.85" fill="#FFFFFF"/><path d="M64.62 32.57C61.07 34.75 56.3 37.34 53.07 37.34 49.84 37.34 48.11 36.53 47.75 34.7 47.7 34.46 47.63 34.05 47.63 33.41L47.63 31.08C50.19 30.31 52.71 30.03 56.28 28.85 64.6 26.14 66.56 23.74 65.63 18.9 64.79 14.66 60.62 12.43 55.39 12.43 46.5 12.43 42.3 16.07 42.3 23.31L42.32 32.35C42.32 33.36 42.44 34.29 42.58 34.99 43.35 38.92 46.39 41.63 52.72 41.63 57.85 41.63 62.62 38.9 65.86 36.69L64.61 32.57 64.61 32.57ZM47.6 22.68C47.6 18.03 50.88 16.69 55.77 16.69 58.6 16.69 60.37 17.58 60.76 19.45 61.22 21.8 58.72 23.62 53.76 25.03 50.88 25.84 49.25 26.16 47.6 26.61L47.6 22.68 47.6 22.68Z" fill="#FFFFFF"/></g></g></svg><a class="back" href="../#decks">← Hub</a></div>
+ <h1>evoila US one-pager</h1>
+ <p class="sub">Send the current version, or describe a change and get a new version in a few minutes</p>
+</div></header>
+<main class="wrap">
+ <div id="flash"></div>
+ <div class="grid">
+  <div>
+   <div class="card" id="current"><div class="loading">Loading…</div></div>
+  </div>
+  <div>
+   <div class="card" id="sendCard">
+    <h2>Send it</h2>
+    <p class="hint" style="margin-top:0">Emails the current PDF from evoila with you in CC. Replies come to you.</p>
+    <div class="two">
+     <div><label class="l" for="to">Their email</label><input id="to" type="email" autocomplete="off" placeholder="name@company.com"></div>
+     <div><label class="l" for="nm">Their first name (optional)</label><input id="nm" type="text" autocomplete="off" placeholder="Jordan"></div>
+    </div>
+    <label class="l" for="note">Your note (optional)</label>
+    <textarea id="note" placeholder="Good talking today. Here's the overview I mentioned."></textarea>
+    <button class="btn" id="send" type="button">Send the one-pager</button>
+   </div>
+   <div class="card" id="editCard">
+    <h2>Make a new version</h2>
+    <p class="hint" style="margin-top:0">Say what to change in plain words. Only the words change; layout, colors and badges stay as they are. It goes live as the new current version when it passes the checks (no VCSP, no em dashes, everything still fits). Every version is kept below and any of them can be made current again.</p>
+    <label class="l" for="req">What should change?</label>
+    <textarea id="req" placeholder="e.g. We have 26 Broadcom Knights now. Add 'Edge & telco' to the industry verticals."></textarea>
+    <button class="btn" id="edit" type="button">Make the new version</button>
+   </div>
+  </div>
+ </div>
+ <div class="card" id="history"><h2>Versions</h2><div class="loading">Loading…</div></div>
+ <div class="card" id="sends"><h2>Sent recently</h2><div class="loading">Loading…</div></div>
+ <p class="hint">Internal only. Layout lives in the hub repo (onepager/template.html); words and versions in the One-pager Versions table.</p>
+</main>
+<div class="zoom hidden" id="zoom"><img id="zimg" alt="One-pager preview"></div>
+<script>
+const OP="https://hook.us2.make.com/wm2qvpmw86mothk2svi4qf9gyeyf2h44";
+const DEV=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)?"phone":"desktop";
+function store(k,v){try{localStorage.setItem(k,v)}catch(e){}}
+function load(k){try{return localStorage.getItem(k)}catch(e){return null}}
+const $=s=>document.querySelector(s);
+function el(t,c,x){const e=document.createElement(t);if(c)e.className=c;if(x!=null)e.textContent=x;return e;}
+function flash(t,k){const d=$("#flash");d.innerHTML="";if(t){d.appendChild(el("div","msg "+(k||"ok"),t));window.scrollTo({top:0,behavior:"smooth"});}}
+let token=null;const h=new URLSearchParams(location.hash.slice(1));
+if(h.get("k")){token=h.get("k");store("evoila_hub","k:"+token);}
+else if(h.get("t")){token=h.get("t");store("evoila_hub","t:"+token);}
+else{const s=load("evoila_hub");if(s)token=s.slice(2);else token=load("evoila_desk_t");}
+if(h.toString())history.replaceState(null,"",location.pathname+location.search);
+async function post(p){const r=await fetch(OP,{method:"POST",body:new URLSearchParams(Object.assign({t:token,dev:DEV},p))});const tx=await r.text();let j=null;try{j=JSON.parse(tx)}catch(e){}if(r.status===401)throw new Error("auth");if(!r.ok||!j)throw new Error("fail");return j;}
+const fmt=d=>{try{return new Date(d).toLocaleString(undefined,{month:"short",day:"numeric",year:"numeric",hour:"numeric",minute:"2-digit"})}catch(e){return ""}};
+const day=d=>{try{return new Date(d).toLocaleDateString(undefined,{month:"short",day:"numeric",year:"numeric"})}catch(e){return ""}};
+const att=(f,k)=>(f[k]&&f[k][0])||null;
+const lines=t=>String(t||"").split("\n").map(x=>x.replace(/^-\s*/,"").trim()).filter(Boolean);
+let D=null,watching=null,timer=null;
+
+function tag(s){return el("span","tag "+(s==="Problems found"?"Problems":s),s);}
+function renderCurrent(){
+  const c=$("#current");c.innerHTML="";
+  const cur=D.versions.find(v=>v.fields.Status==="Current");
+  if(!cur){c.appendChild(el("div","hint","There's no current version yet."));$("#send").disabled=true;return;}
+  $("#send").disabled=false;
+  const f=cur.fields,pv=att(f,"Preview"),pdf=att(f,"PDF");
+  c.appendChild(el("h2",null,"Current version"));
+  if(pv){const im=el("img","preview");im.src=pv.url;im.alt="Current one-pager";im.onclick=()=>{$("#zimg").src=pv.url;$("#zoom").classList.remove("hidden");};c.appendChild(im);}
+  const m=el("div","meta");const l=el("div");l.appendChild(el("b",null,f.Version||""));
+  l.appendChild(el("div","hint",(f["Requested by"]?f["Requested by"]+", ":"")+day(f.Created)));m.appendChild(l);
+  if(pdf){const a=el("a","btn sm","Download PDF");a.href=pdf.url;a.target="_blank";a.rel="noopener";m.appendChild(a);}
+  c.appendChild(m);
+  const ch=lines(f.Changes);if(ch.length){const ul=el("ul","changes");ch.forEach(x=>ul.appendChild(el("li",null,x)));c.appendChild(ul);}
+}
+function renderHistory(){
+  const c=$("#history");c.innerHTML="";c.appendChild(el("h2",null,"Versions"));
+  if(!D.versions.length){c.appendChild(el("div","hint","No versions yet."));return;}
+  D.versions.forEach(v=>{const f=v.fields,row=el("div","ver");
+    const vh=el("div","vh");const t=el("div");t.appendChild(el("b",null,f.Version||(f.Status==="Building"?"New version":"Not published")));t.appendChild(tag(f.Status||""));vh.appendChild(t);
+    vh.appendChild(el("span","hint",(f["Requested by"]||"")+(f["Requested by"]?" · ":"")+fmt(f.Created)));row.appendChild(vh);
+    if(f.Request)row.appendChild(el("div","req",f.Request));
+    if(f.Status==="Building")row.appendChild(el("div","hint","Writing, checking and rendering. This usually takes two to five minutes."));
+    if(f.Status==="Problems found"&&f.Problems)row.appendChild(el("div","prob",f.Problems));
+    const ch=lines(f.Changes);if(ch.length&&f.Status!=="Problems found"){const ul=el("ul","changes");ch.forEach(x=>ul.appendChild(el("li",null,x)));row.appendChild(ul);}
+    const acts=el("div","acts");const pdf=att(f,"PDF");
+    if(pdf&&f.Status!=="Problems found"){const a=el("a","btn ghost sm","PDF");a.href=pdf.url;a.target="_blank";a.rel="noopener";acts.appendChild(a);}
+    if(f.Status==="Previous"&&pdf){const b=el("button","btn ghost sm","Make this current again");b.type="button";b.onclick=()=>restore(v,b);acts.appendChild(b);}
+    if(acts.children.length)row.appendChild(acts);
+    c.appendChild(row);});
+}
+function renderSends(){
+  const c=$("#sends");c.innerHTML="";c.appendChild(el("h2",null,"Sent recently"));
+  if(!D.sends.length){c.appendChild(el("div","hint","Nothing sent from the hub yet."));return;}
+  const tb=el("table");D.sends.forEach(s=>{const f=s.fields,tr=el("tr");
+    tr.appendChild(el("td",null,(f["Recipient name"]?f["Recipient name"]+" · ":"")+(f.To||"")));
+    tr.appendChild(el("td","hint",f.Version||""));tr.appendChild(el("td","hint",f["Sent by"]||""));
+    tr.appendChild(el("td","hint",(f.Status==="Sent"?"":"Sending · ")+day(f.Created)));tb.appendChild(tr);});
+  c.appendChild(tb);
+}
+async function refresh(){
+  D=await post({a:"opget"});D.versions=D.versions||[];D.sends=D.sends||[];
+  renderCurrent();renderHistory();renderSends();
+  if(watching){const v=D.versions.find(x=>x.id===watching);
+    if(v&&v.fields.Status==="Current"){flash((v.fields.Version||"The new version")+" is live. It's what the hub sends from now on.");watching=null;}
+    else if(v&&v.fields.Status==="Problems found"){flash("That change wasn't published. The reason is under Versions, and the current version is unchanged.","err");watching=null;}}
+  clearTimeout(timer);
+  if(watching||D.versions.some(v=>v.fields.Status==="Building")||D.sends.some(s=>s.fields.Status!=="Sent"))timer=setTimeout(()=>refresh().catch(()=>{}),12000);
+}
+async function restore(v,b){
+  if(!confirm("Make "+(v.fields.Version||"this version")+" the current one-pager again? It comes back as a new version, so nothing is lost."))return;
+  b.disabled=true;b.textContent="Restoring…";
+  try{const j=await post({a:"oprestore",id:v.id,label:v.fields.Version||""});watching=j.id;flash("Restoring "+(v.fields.Version||"that version")+". It'll be live in a few minutes.","wait");await refresh();}
+  catch(e){flash("That didn't go through. Try again in a minute.","err");b.disabled=false;b.textContent="Make this current again";}
+}
+$("#edit").onclick=async()=>{
+  const r=$("#req").value.trim();if(!r){$("#req").focus();return;}
+  if(D&&D.versions.some(v=>v.fields.Status==="Building")){flash("A new version is already being made. Wait for it to finish, then make your change.","wait");return;}
+  const b=$("#edit");b.disabled=true;b.textContent="Starting…";
+  try{const j=await post({a:"opedit",req:r});watching=j.id;$("#req").value="";flash("Making the new version. You can leave this page; it goes live on its own when it passes the checks.","wait");await refresh();}
+  catch(e){flash(e.message==="auth"?"This link isn't recognized. Use the personal link Kevin sent you.":"That didn't go through. Try again in a minute.","err");}
+  b.disabled=false;b.textContent="Make the new version";
+};
+$("#send").onclick=async()=>{
+  const to=$("#to").value.trim();if(!/^[^@\s,;]+@[^@\s,;]+\.[A-Za-z]{2,}$/.test(to)){$("#to").focus();flash("Enter one email address.","err");return;}
+  const b=$("#send");b.disabled=true;b.textContent="Sending…";
+  try{const j=await post({a:"opsend",to,name:$("#nm").value.trim(),note:$("#note").value.trim()});
+    if(!j.ok)throw new Error("fail");
+    $("#to").value="";$("#nm").value="";$("#note").value="";flash("Sending "+(j.version||"the one-pager")+" to "+to+". You're in CC.");await refresh();}
+  catch(e){flash(e.message==="auth"?"This link isn't recognized. Use the personal link Kevin sent you.":"That didn't send. Try again in a minute.","err");}
+  b.disabled=false;b.textContent="Send the one-pager";
+};
+$("#zoom").onclick=()=>$("#zoom").classList.add("hidden");
+document.addEventListener("keydown",e=>{if(e.key==="Escape")$("#zoom").classList.add("hidden");});
+(async()=>{
+  if(!token){["#current","#sendCard","#editCard","#history","#sends"].forEach(s=>$(s).classList.add("hidden"));flash("Open this page from your personal hub link.","err");return;}
+  try{await refresh();}
+  catch(e){["#current","#history","#sends"].forEach(s=>$(s).innerHTML="");flash(e.message==="auth"?"This link isn't recognized. Use the personal link Kevin sent you.":"Couldn't load this just now. Refresh in a minute.","err");}
+})();
+</script>
+</body>
+</html>
