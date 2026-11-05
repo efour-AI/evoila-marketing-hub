@@ -1,19 +1,26 @@
 name: Build one-pager version
 
-# Fired by the Airtable automation "One-pager: build new version" (repository_dispatch onepager-build,
-# record = One-pager Versions row with Status = Building), or by hand from the Actions tab.
+# Fired by Airtable automations (repository_dispatch):
+#   onepager-build - "One-pager: build new version" (record = One-pager Versions row, Status = Building)
+#   onepager-send  - "One-pager: prepare send" (record = One-pager Sends row, Status = Preparing): renders the
+#                    current words with the contacts the sender picked and attaches the PDF
+# or by hand from the Actions tab.
 on:
   repository_dispatch:
-    types: [onepager-build]
+    types: [onepager-build, onepager-send]
   workflow_dispatch:
     inputs:
       record_id:
-        description: "One-pager Versions record ID (rec...)"
+        description: "Record ID (rec...)"
         required: true
+      mode:
+        description: "onepager-build or onepager-send"
+        required: false
+        default: onepager-build
 
-# One version at a time, so two edits never both become Current.
+# One version at a time, so two edits never both become Current. Sends run side by side.
 concurrency:
-  group: onepager
+  group: ${{ (github.event.action || github.event.inputs.mode) == 'onepager-send' && format('onepager-send-{0}', github.event.client_payload.record_id || github.event.inputs.record_id) || 'onepager' }}
   cancel-in-progress: false
 
 jobs:
@@ -22,6 +29,7 @@ jobs:
     timeout-minutes: 15
     env:
       RECORD_ID: ${{ github.event.client_payload.record_id || github.event.inputs.record_id }}
+      MODE: ${{ github.event.action || github.event.inputs.mode || 'onepager-build' }}
     steps:
       - uses: actions/checkout@v4
 

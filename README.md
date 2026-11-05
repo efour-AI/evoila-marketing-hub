@@ -70,8 +70,12 @@ field, JSON in the `onepager/copy.json` format). The Current row is what the hub
    Chrome; text that no longer fits fails). Claude gets two tries to fix a problem. It passes: PDF and preview
    are attached, the row becomes vN and Current, the old one Previous. It fails: Problems found, the reason is
    on the row, the requester gets an email ("One-pager: version not published") and the current version stays.
-3. Sending: the hub copies the Current PDF onto a **One-pager Sends** row; "One-pager: send" emails it with
-   the sender in CC and as reply-to, and sets Status = Sent.
+3. Sending: the sender picks one or two people for the contact box at the bottom (from **One-pager
+   Contacts**, editable on the page). The hub adds a **One-pager Sends** row (Status = Preparing);
+   "One-pager: prepare send" fires `onepager-send`, which renders the Current words with those contacts,
+   checks they fit, attaches the PDF and sets Queued. "One-pager: send" then emails it with the sender in CC
+   and as reply-to, and sets Status = Sent. If the contacts don't fit: Problems found, and "One-pager: send
+   failed, tell the sender" emails the reason.
 
 To ban another word on the one-pager, add it to `onepager/rules.json`. Layout changes are made in
 `template.html` by hand (check with `python onepager/onepager.py --local onepager/copy.json out/`).

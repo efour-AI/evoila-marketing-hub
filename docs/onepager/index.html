@@ -30,6 +30,10 @@ main{padding:16px}
 .meta b{font-size:16px}
 .hint{font-size:13px;color:var(--muted)}
 label.l{display:block;font-size:13px;font-weight:600;margin:10px 0 4px}
+select{width:100%;font:inherit;font-size:15px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:9px;padding:10px}
+.pform{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+.pform input{padding:8px;font-size:14px}
+@media (max-width:620px){.pform{grid-template-columns:1fr}}
 input,textarea{width:100%;font:inherit;font-size:15px;color:var(--ink);background:var(--card);border:1px solid var(--line);border-radius:9px;padding:10px}
 textarea{min-height:96px;resize:vertical}
 .two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
@@ -75,11 +79,14 @@ tr:first-child td{border-top:0}
   <div>
    <div class="card" id="sendCard">
     <h2>Send it</h2>
-    <p class="hint" style="margin-top:0">Emails the current PDF from evoila with you in CC. Replies come to you.</p>
+    <p class="hint" style="margin-top:0">Emails the current version from evoila with you in CC, made with the people you pick for the contact box. Replies come to you.</p>
     <div class="two">
      <div><label class="l" for="to">Their email</label><input id="to" type="email" autocomplete="off" placeholder="name@company.com"></div>
      <div><label class="l" for="nm">Their first name (optional)</label><input id="nm" type="text" autocomplete="off" placeholder="Jordan"></div>
     </div>
+    <label class="l">Contact box at the bottom</label>
+    <div class="two"><select id="c1" aria-label="First contact"></select><select id="c2" aria-label="Second contact"></select></div>
+    <div class="hint" id="cHint" style="margin-top:4px"></div>
     <label class="l" for="note">Your note (optional)</label>
     <textarea id="note" placeholder="Good talking today. Here's the overview I mentioned."></textarea>
     <button class="btn" id="send" type="button">Send the one-pager</button>
@@ -94,6 +101,7 @@ tr:first-child td{border-top:0}
   </div>
  </div>
  <div class="card" id="history"><h2>Versions</h2><div class="loading">Loading…</div></div>
+ <div class="card" id="people"><h2>People who can go in the contact box</h2><div class="loading">Loading…</div></div>
  <div class="card" id="sends"><h2>Sent recently</h2><div class="loading">Loading…</div></div>
  <p class="hint">Internal only. Layout lives in the hub repo (onepager/template.html); words and versions in the One-pager Versions table.</p>
 </main>
@@ -154,18 +162,68 @@ function renderSends(){
   if(!D.sends.length){c.appendChild(el("div","hint","Nothing sent from the hub yet."));return;}
   const tb=el("table");D.sends.forEach(s=>{const f=s.fields,tr=el("tr");
     tr.appendChild(el("td",null,(f["Recipient name"]?f["Recipient name"]+" · ":"")+(f.To||"")));
-    tr.appendChild(el("td","hint",f.Version||""));tr.appendChild(el("td","hint",f["Sent by"]||""));
-    tr.appendChild(el("td","hint",(f.Status==="Sent"?"":"Sending · ")+day(f.Created)));tb.appendChild(tr);});
+    tr.appendChild(el("td","hint",(f.Version||"")+(f.Contacts?" · "+f.Contacts.split("|").map(x=>x.trim().split(" ")[0]).join(" & "):"")));tr.appendChild(el("td","hint",f["Sent by"]||""));
+    const st=f.Status==="Sent"?"":f.Status==="Problems found"?"Not sent · ":"Sending · ";
+    tr.appendChild(el("td",f.Status==="Problems found"?"prob":"hint",st+day(f.Created)));tb.appendChild(tr);
+    if(f.Status==="Problems found"&&f.Problems){const r2=el("tr");const td=el("td","prob",f.Problems);td.colSpan=4;r2.appendChild(td);tb.appendChild(r2);}});
   c.appendChild(tb);
 }
+function curContacts(){
+  const cur=D.versions.find(v=>v.fields.Status==="Current");
+  try{return (JSON.parse(cur.fields.Copy).contacts||[]).map(c=>c.name);}catch(e){return [];}
+}
+let picked=null;
+function renderPickers(){
+  const act=D.contacts.filter(c=>c.fields.Active&&c.fields.Name);
+  const def=picked||curContacts();
+  [["#c1",0,false],["#c2",1,true]].forEach(([id,i,none])=>{const s=$(id);s.innerHTML="";
+    if(none)s.appendChild(new Option("No second contact",""));
+    act.forEach(c=>{const f=c.fields;s.appendChild(new Option(f.Name+(f.Title?", "+f.Title:""),f.Name));});
+    s.value=act.some(c=>c.fields.Name===def[i])?def[i]:(none?"":(act[0]?act[0].fields.Name:""));
+    s.onchange=()=>{picked=[$("#c1").value,$("#c2").value];hintPick();};});
+  hintPick();
+}
+function hintPick(){
+  const miss=[$("#c1").value,$("#c2").value].filter(Boolean).map(n=>D.contacts.find(c=>c.fields.Name===n)).filter(c=>c&&!c.fields.Phone).map(c=>c.fields.Name.split(" ")[0]);
+  $("#cHint").textContent=($("#c1").value&&$("#c1").value===$("#c2").value?"Pick two different people. ":"")+(miss.length?"No phone on file for "+miss.join(" and ")+", so only the email shows. Add it under People below.":"The PDF is made with these names, titles, phones and emails.");
+}
+function pform(c){
+  const f=(c&&c.fields)||{};const w=el("div","pform");
+  const mk=(k,ph,t)=>{const i=el("input");i.placeholder=ph;i.value=f[k]||"";if(t)i.type=t;w.appendChild(i);return i;};
+  const n=mk("Name","Name"),t=mk("Title","Title (keep it short)"),p=mk("Phone","Phone","tel"),e=mk("Email","Email","email");
+  const row=el("div","acts");
+  let act=null;if(c){const lb=el("label","hint");act=el("input");act.type="checkbox";act.checked=!!f.Active;act.style.width="auto";act.style.marginRight="6px";lb.append(act,"Can be picked");row.appendChild(lb);}
+  const sv=el("button","btn sm","Save");sv.type="button";row.appendChild(sv);
+  const wrap=el("div");wrap.append(w,row);
+  sv.onclick=async()=>{if(!n.value.trim()){n.focus();return;}sv.disabled=true;sv.textContent="Saving…";
+    try{const q={a:"opcontact",name:n.value,title:t.value,phone:p.value,email:e.value};if(c){q.id=c.id;q.active=act.checked?"1":"0";}
+      await post(q);flash("Saved. Every send from now on uses it.");await refresh();}
+    catch(err){flash("That didn't save. Try again in a minute.","err");sv.disabled=false;sv.textContent="Save";}};
+  return wrap;
+}
+function renderPeople(){
+  const c=$("#people");c.innerHTML="";c.appendChild(el("h2",null,"People who can go in the contact box"));
+  c.appendChild(el("p","hint","When someone sends the one-pager they pick one or two of these. Change a title or phone here and every send after that uses it."));
+  const tb=el("table");
+  D.contacts.forEach(p=>{const f=p.fields,tr=el("tr");
+    const a=el("td");a.appendChild(el("b",null,f.Name||""));a.appendChild(el("div","hint",f.Title||""));tr.appendChild(a);
+    tr.appendChild(el("td","hint",[f.Phone||"no phone",f.Email||""].join(" · ")));
+    tr.appendChild(el("td","hint",f.Active?"":"Hidden"));
+    const td=el("td");const b=el("button","btn ghost sm","Edit");b.type="button";td.appendChild(b);tr.appendChild(td);
+    const er=el("tr","hidden");const ec=el("td");ec.colSpan=4;ec.appendChild(pform(p));er.appendChild(ec);
+    b.onclick=()=>er.classList.toggle("hidden");tb.append(tr,er);});
+  c.appendChild(tb);
+  const add=el("button","btn ghost sm","Add a person");add.type="button";add.style.marginTop="10px";c.appendChild(add);
+  const box=el("div","hidden");box.appendChild(pform(null));c.appendChild(box);add.onclick=()=>box.classList.toggle("hidden");
+}
 async function refresh(){
-  D=await post({a:"opget"});D.versions=D.versions||[];D.sends=D.sends||[];
-  renderCurrent();renderHistory();renderSends();
+  D=await post({a:"opget"});D.versions=D.versions||[];D.sends=D.sends||[];D.contacts=D.contacts||[];
+  renderCurrent();renderHistory();renderSends();renderPickers();renderPeople();
   if(watching){const v=D.versions.find(x=>x.id===watching);
     if(v&&v.fields.Status==="Current"){flash((v.fields.Version||"The new version")+" is live. It's what the hub sends from now on.");watching=null;}
     else if(v&&v.fields.Status==="Problems found"){flash("That change wasn't published. The reason is under Versions, and the current version is unchanged.","err");watching=null;}}
   clearTimeout(timer);
-  if(watching||D.versions.some(v=>v.fields.Status==="Building")||D.sends.some(s=>s.fields.Status!=="Sent"))timer=setTimeout(()=>refresh().catch(()=>{}),12000);
+  if(watching||D.versions.some(v=>v.fields.Status==="Building")||D.sends.some(s=>s.fields.Status==="Preparing"||s.fields.Status==="Queued"))timer=setTimeout(()=>refresh().catch(()=>{}),12000);
 }
 async function restore(v,b){
   if(!confirm("Make "+(v.fields.Version||"this version")+" the current one-pager again? It comes back as a new version, so nothing is lost."))return;
@@ -183,19 +241,21 @@ $("#edit").onclick=async()=>{
 };
 $("#send").onclick=async()=>{
   const to=$("#to").value.trim();if(!/^[^@\s,;]+@[^@\s,;]+\.[A-Za-z]{2,}$/.test(to)){$("#to").focus();flash("Enter one email address.","err");return;}
+  const cs=[$("#c1").value,$("#c2").value].filter(Boolean);
+  if(!cs.length||cs[0]===cs[1]){flash("Pick who goes in the contact box (two different people, or one).","err");return;}
   const b=$("#send");b.disabled=true;b.textContent="Sending…";
-  try{const j=await post({a:"opsend",to,name:$("#nm").value.trim(),note:$("#note").value.trim()});
+  try{const j=await post({a:"opsend",to,name:$("#nm").value.trim(),note:$("#note").value.trim(),contacts:cs.join("|")});
     if(!j.ok)throw new Error("fail");
-    $("#to").value="";$("#nm").value="";$("#note").value="";flash("Sending "+(j.version||"the one-pager")+" to "+to+". You're in CC.");await refresh();}
+    $("#to").value="";$("#nm").value="";$("#note").value="";flash("Making the PDF with "+cs.join(" and ")+" in the contact box. It goes to "+to+" in a couple of minutes, with you in CC.");await refresh();}
   catch(e){flash(e.message==="auth"?"This link isn't recognized. Use the personal link Kevin sent you.":"That didn't send. Try again in a minute.","err");}
   b.disabled=false;b.textContent="Send the one-pager";
 };
 $("#zoom").onclick=()=>$("#zoom").classList.add("hidden");
 document.addEventListener("keydown",e=>{if(e.key==="Escape")$("#zoom").classList.add("hidden");});
 (async()=>{
-  if(!token){["#current","#sendCard","#editCard","#history","#sends"].forEach(s=>$(s).classList.add("hidden"));flash("Open this page from your personal hub link.","err");return;}
+  if(!token){["#current","#sendCard","#editCard","#history","#sends","#people"].forEach(s=>$(s).classList.add("hidden"));flash("Open this page from your personal hub link.","err");return;}
   try{await refresh();}
-  catch(e){["#current","#history","#sends"].forEach(s=>$(s).innerHTML="");flash(e.message==="auth"?"This link isn't recognized. Use the personal link Kevin sent you.":"Couldn't load this just now. Refresh in a minute.","err");}
+  catch(e){["#current","#history","#sends","#people"].forEach(s=>$(s).innerHTML="");flash(e.message==="auth"?"This link isn't recognized. Use the personal link Kevin sent you.":"Couldn't load this just now. Refresh in a minute.","err");}
 })();
 </script>
 </body>

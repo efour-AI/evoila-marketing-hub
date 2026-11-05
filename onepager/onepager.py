@@ -29,6 +29,12 @@ F = {"version": "fld12J8ryv2cRuncA", "number": "fldybNjNKEob6CsDl", "status": "f
      "request": "fldI2rQGBXiUNtzbK", "by": "fld4VZ16l8LDCizUe", "restore": "fldxazqBXAIia5mpZ",
      "changes": "fldqrpNEfgI1dNxwr", "problems": "fldEJmUogYPJ8K9gS", "copy": "fldMeJWxYhk75FqoO",
      "pdf": "fld6mbJWsEXJrRuCI", "preview": "fldkUl4JU3ElviDva"}
+TS = "tblh9HWt19eNVucUZ"   # One-pager Sends
+S = {"to": "fldh916SqGqrkN6EI", "by": "fldLZ4jSjmn7JIiVz", "version": "fld1MnyOErK7Kw1xZ", "pdf": "fldgCnO0TYGdCH5yt",
+     "status": "fldbG4VfpHk5WCsJq", "contacts": "fldoZcVV22LFFgJVi", "problems": "fldech2hQFjnJsI50"}
+TC = "tblgzDaANpuDgr8an"   # One-pager Contacts
+C = {"name": "fld6DeyjzbLGL2Jcp", "title": "fld9DocPIoSA2k1bw", "phone": "fldcC8LGTVnXVjdod", "email": "fldfGbYN8OVvXiRZs",
+     "active": "fld6aPnJaMwytNd77"}
 RULES = json.loads((HERE / "rules.json").read_text())
 WORK = HERE.parent / "work"
 
@@ -45,7 +51,7 @@ Rules:
 - Never use these words or terms anywhere: {banned}. No em dashes (use a comma, colon or period).
   "evoila" is always lowercase. Wrap words in **double asterisks** only where the page already uses bold.
 - Every box has a fixed size. Keep each changed text about as long as the text it replaces, or shorter.
-- Keep the structure: the same keys, exactly 4 stats, 4 capabilities and 2 contacts. Lists may gain or lose
+- Keep the structure: the same keys, exactly 4 stats, 4 capabilities and 1 or 2 contacts. Lists may gain or lose
   an item only if the request asks for it.
 - If part of the request breaks these rules or cannot be done with words alone (layout, colors, logos,
   badges, pictures), do the rest and list what you did not do under not_applied.
@@ -79,27 +85,27 @@ def api(method, url, body=None):
             raise RuntimeError(f"Airtable {e.code}: {e.read()[:300].decode('utf-8', 'ignore')}")
 
 
-def url(rid=""):
-    return f"https://api.airtable.com/v0/{BASE}/{T}" + (f"/{rid}" if rid else "")
+def url(rid="", table=T):
+    return f"https://api.airtable.com/v0/{BASE}/{table}" + (f"/{rid}" if rid else "")
 
 
-def get(rid):
-    return api("GET", url(rid) + "?returnFieldsByFieldId=true")
+def get(rid, table=T):
+    return api("GET", url(rid, table) + "?returnFieldsByFieldId=true")
 
 
-def all_rows():
+def all_rows(table=T):
     out, off = [], None
     while True:
         q = "?returnFieldsByFieldId=true&pageSize=100" + (f"&offset={off}" if off else "")
-        r = api("GET", url() + q)
+        r = api("GET", url("", table) + q)
         out += r.get("records", [])
         off = r.get("offset")
         if not off:
             return out
 
 
-def patch(rid, fields):
-    api("PATCH", url(rid), {"fields": fields, "typecast": True})
+def patch(rid, fields, table=T):
+    api("PATCH", url(rid, table), {"fields": fields, "typecast": True})
 
 
 def upload(rid, field, path, ctype):
@@ -148,9 +154,11 @@ def shape_problems(page):
     bad = [f"{k} is missing or the wrong type" for k, t in need.items() if not isinstance(page.get(k), t)]
     if bad:
         return bad
-    for k, n in (("stats", 4), ("capabilities", 4), ("contacts", 2)):
+    for k, n in (("stats", 4), ("capabilities", 4)):
         if len(page[k]) != n:
             bad.append(f"{k} must have exactly {n} entries")
+    if len(page["contacts"]) not in (1, 2):
+        bad.append("the contact box holds one or two people")
     if not all(isinstance(c, dict) and isinstance(c.get("items"), list) for c in page["capabilities"]):
         bad.append("every capability needs a title and an items list")
     return bad
@@ -287,6 +295,48 @@ def build(rid):
     print("published", version)
 
 
+def prepare_send(rid):
+    """A send from the hub: render the Current words with the contacts the sender picked, attach the PDF to the
+    One-pager Sends row and set it to Queued, which lets "One-pager: send" email it."""
+    row = get(rid, TS)["fields"]
+    cur = next((r for r in all_rows() if sel(r["fields"].get(F["status"])) == "Current"), None)
+    if not cur:
+        raise RuntimeError("There is no current one-pager version.")
+    page = json.loads(cur["fields"][F["copy"]])
+    version = cur["fields"].get(F["version"]) or "current"
+    names = [n.strip() for n in (row.get(S["contacts"]) or "").split("|") if n.strip()][:2]
+    problems = []
+    if names:
+        people = {(r["fields"].get(C["name"]) or "").strip().lower(): r["fields"] for r in all_rows(TC)}
+        chosen = []
+        for n in names:
+            p = people.get(n.lower())
+            if not p:
+                problems.append(f"{n} is not in the One-pager Contacts list.")
+                continue
+            chosen.append({"name": p.get(C["name"], ""), "title": p.get(C["title"], ""),
+                           "phone": p.get(C["phone"], ""), "email": p.get(C["email"], "")})
+        if chosen:
+            page["contacts"] = chosen
+    WORK.mkdir(exist_ok=True)
+    pdf, png = WORK / f"evoila_onepager_US_{version}.pdf", WORK / "send_preview.png"
+    if not problems:
+        problems = shape_problems(page) + rule_problems(page)
+    if not problems:
+        problems = [f'"{b}" no longer fits its box. Use a shorter title.' for b in render(page, pdf, png)]
+    if problems:
+        patch(rid, {S["status"]: "Problems found", S["version"]: version,
+                    S["problems"]: "Not sent.\n- " + "\n- ".join(problems)}, TS)
+        print("send problems:", len(problems))
+        return
+    b64 = base64.b64encode(pdf.read_bytes()).decode()
+    patch(rid, {S["pdf"]: [], S["version"]: version}, TS)
+    api("POST", f"https://content.airtable.com/v0/{BASE}/{rid}/{S['pdf']}/uploadAttachment",
+        {"contentType": "application/pdf", "file": b64, "filename": pdf.name})
+    patch(rid, {S["status"]: "Queued", S["problems"]: ""}, TS)
+    print("send prepared", version, len(page["contacts"]), "contacts")
+
+
 def local(copy_path, out_dir):
     """python onepager/onepager.py --local copy.json outdir : render and check without Airtable."""
     page = json.loads(pathlib.Path(copy_path).read_text())
@@ -301,11 +351,19 @@ if __name__ == "__main__":
         local(sys.argv[2], sys.argv[3])
         sys.exit(0)
     rid = (os.environ.get("RECORD_ID") or "").strip()
+    mode = (os.environ.get("MODE") or "onepager-build").strip()
     try:
+        if mode == "onepager-send":
+            try:
+                prepare_send(rid)
+            except Exception as e:
+                patch(rid, {S["status"]: "Problems found", S["problems"]: "Not sent. (" + str(e)[:300] + ")"}, TS)
+                raise
+            sys.exit(0)
         build(rid)
     except Exception as e:
         print("Job failed:", type(e).__name__)
-        if rid:
+        if rid and mode != "onepager-send":
             try:
                 patch(rid, {F["status"]: "Problems found",
                             F["problems"]: "The build failed, so nothing changed. The current version is still live. (" +
