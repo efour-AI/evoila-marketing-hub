@@ -145,7 +145,7 @@ function renderHistory(){
     const ch=lines(f.Changes);if(ch.length&&f.Status!=="Problems found"){const ul=el("ul","changes");ch.forEach(x=>ul.appendChild(el("li",null,x)));row.appendChild(ul);}
     const acts=el("div","acts");const pdf=att(f,"PDF");
     if(pdf&&f.Status!=="Problems found"){const a=el("a","btn ghost sm","PDF");a.href=pdf.url;a.target="_blank";a.rel="noopener";acts.appendChild(a);}
-    if(f.Status==="Previous"&&pdf){const b=el("button","btn ghost sm","Make this current again");b.type="button";b.onclick=()=>restore(v,b);acts.appendChild(b);}
+    if(f.Status==="Previous"&&pdf&&!/cannot be made current/.test(f.Changes||"")){const b=el("button","btn ghost sm","Make this current again");b.type="button";b.onclick=()=>restore(v,b);acts.appendChild(b);}
     if(acts.children.length)row.appendChild(acts);
     c.appendChild(row);});
 }
