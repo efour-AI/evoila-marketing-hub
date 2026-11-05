@@ -217,7 +217,7 @@ footer{text-align:center;font-size:12px;color:var(--muted);padding:0 16px 28px}
  <p class="sub">Where we are headed, what is moving, and everything you need to sell.</p>
 </div></header>
 <nav class="tabs" id="tabs"><div class="wrap">
- <a href="#home">Home</a><a href="#strategy">Strategy</a><a href="#library">Library</a><a href="#decks">Decks</a>
+ <a href="#home">Home</a><a href="#strategy">Strategy</a><a href="#library">Library</a><a href="#decks">Sales materials</a>
  <a href="#linkedin">LinkedIn</a><a href="#meetings">Meetings</a><a href="#analytics">Analytics</a><a href="#usage" class="hidden" id="usageTab">Usage</a>
 </div></nav>
 <main class="wrap">
@@ -684,7 +684,7 @@ function resCard(r){
 /* ---------- decks ---------- */
 const DECKS_SINCE="2026-11-04T22:00:00Z";   /* decks requested before the new review process are not listed */
 function decks(me,admin){
-  const c=section("decks","Decks","Request a tailored deck, build your own, convert one you made, send the one-pager, or reuse one the team made");
+  const c=section("decks","Sales materials","Request or build a deck, convert one you made, send the one-pager, or reuse what the team made");
   const SHOW=["Sent","Final","Finalizing","In review","Ready","Building"];
   const fresh=d=>Date.parse(d["Requested at"]||d.Created||0)>=Date.parse(DECKS_SINCE);
   const list=D.decks.map(d=>Object.assign({_id:d.id},d.fields)).filter(d=>SHOW.includes(d.Status)&&fresh(d)).slice(0,12);
