@@ -81,19 +81,23 @@ tr:first-child td{border-top:0}
   </div>
   <div>
    <div class="card" id="sendCard">
-    <h2>Send it or download it</h2>
-    <div class="seg" role="tablist"><button type="button" id="mEmail" class="on">Email it for me</button><button type="button" id="mDl">Download it</button></div>
-    <p class="hint" id="modeHint" style="margin-top:8px">Emails the current version from evoila with you in CC, made with the people you pick for the contact box. Replies come to you.</p>
-    <div class="two" id="emailFields">
-     <div><label class="l" for="to">Their email</label><input id="to" type="email" autocomplete="off" placeholder="name@company.com"></div>
-     <div><label class="l" for="nm">Their first name (optional)</label><input id="nm" type="text" autocomplete="off" placeholder="Jordan"></div>
-    </div>
-    <label class="l">Contact box at the bottom</label>
-    <div class="two"><select id="c1" aria-label="First contact"></select><select id="c2" aria-label="Second contact"></select></div>
+    <h2>Get the one-pager out</h2>
+    <div class="seg" role="tablist"><button type="button" id="mEmail" class="on">Email it to someone</button><button type="button" id="mDl">Download it for me</button></div>
+    <p class="hint" id="modeHint" style="margin-top:8px"></p>
+    <label class="l">Contact person printed on the one-pager</label>
+    <div class="hint" style="margin:-2px 0 6px">The name, title, phone and email at the bottom of the page. Usually you.</div>
+    <div class="two"><select id="c1" aria-label="Contact person on the one-pager"></select><select id="c2" aria-label="Second contact person (optional)"></select></div>
     <div class="hint" id="cHint" style="margin-top:4px"></div>
+    <div id="emailFields">
+     <label class="l" style="margin-top:14px">Who you're sending it to</label>
+     <div class="two">
+      <div><label class="hint" for="to">Recipient's email</label><input id="to" type="email" autocomplete="off" placeholder="name@company.com"></div>
+      <div><label class="hint" for="nm">Recipient's first name (optional)</label><input id="nm" type="text" autocomplete="off" placeholder="Jordan"></div>
+     </div>
+    </div>
     <label class="l" for="oneoff">Changes just for this copy (optional)</label>
     <textarea id="oneoff" style="min-height:64px" placeholder="e.g. Use 'Federal & SLED' as the first industry. Only this copy changes; the current version stays as it is."></textarea>
-    <div id="noteWrap"><label class="l" for="note">Your note (optional)</label>
+    <div id="noteWrap"><label class="l" for="note">Your note to them (optional)</label>
     <textarea id="note" placeholder="Good talking today. Here's the overview I mentioned."></textarea></div>
     <button class="btn" id="send" type="button">Send the one-pager</button>
     <div id="dlBox" class="msg ok hidden" style="margin:12px 0 0"></div>
@@ -184,17 +188,18 @@ function curContacts(){
 let picked=null;
 function renderPickers(){
   const act=D.contacts.filter(c=>c.fields.Active&&c.fields.Name);
-  const def=picked||curContacts();
+  const mine=act.find(c=>D.me&&c.fields.Name.toLowerCase().startsWith(D.me.toLowerCase()));
+  const def=picked||(mine?[mine.fields.Name,""]:curContacts());
   [["#c1",0,false],["#c2",1,true]].forEach(([id,i,none])=>{const s=$(id);s.innerHTML="";
-    if(none)s.appendChild(new Option("No second contact",""));
-    act.forEach(c=>{const f=c.fields;s.appendChild(new Option(f.Name+(f.Title?", "+f.Title:""),f.Name));});
+    if(none)s.appendChild(new Option("No second contact person",""));
+    act.forEach(c=>{const f=c.fields;s.appendChild(new Option(f.Name,f.Name));});
     s.value=act.some(c=>c.fields.Name===def[i])?def[i]:(none?"":(act[0]?act[0].fields.Name:""));
     s.onchange=()=>{picked=[$("#c1").value,$("#c2").value];hintPick();};});
   hintPick();
 }
 function hintPick(){
   const miss=[$("#c1").value,$("#c2").value].filter(Boolean).map(n=>D.contacts.find(c=>c.fields.Name===n)).filter(c=>c&&!c.fields.Phone).map(c=>c.fields.Name.split(" ")[0]);
-  $("#cHint").textContent=($("#c1").value&&$("#c1").value===$("#c2").value?"Pick two different people. ":"")+(miss.length?"No phone on file for "+miss.join(" and ")+", so only the email shows. Add it under People below.":"The PDF is made with these names, titles, phones and emails.");
+  $("#cHint").textContent=($("#c1").value&&$("#c1").value===$("#c2").value?"Pick two different people. ":"")+(miss.length?"No phone on file for "+miss.join(" and ")+", so only the email shows. Add it under People below.":"");
 }
 function pform(c){
   const f=(c&&c.fields)||{};const w=el("div","pform");
@@ -252,8 +257,8 @@ let mode="email",myCopy=null;
 function setMode(m){mode=m;$("#mEmail").classList.toggle("on",m==="email");$("#mDl").classList.toggle("on",m==="dl");
   $("#emailFields").classList.toggle("hidden",m==="dl");$("#noteWrap").classList.toggle("hidden",m==="dl");
   $("#send").textContent=m==="dl"?"Make my copy":"Send the one-pager";
-  $("#modeHint").textContent=m==="dl"?"Makes a PDF of the current version with the people you pick for the contact box, for you to download and send yourself. Nothing is emailed and the current version doesn't change.":"Emails the current version from evoila with you in CC, made with the people you pick for the contact box. Replies come to you.";}
-$("#mEmail").onclick=()=>setMode("email");$("#mDl").onclick=()=>setMode("dl");
+  $("#modeHint").textContent=m==="dl"?"Makes a PDF for you to download and send yourself. Nothing is emailed and the current version doesn't change.":"The hub emails the PDF to the person you name below, from evoila, with you in CC. Replies come to you.";}
+setMode("email");$("#mEmail").onclick=()=>setMode("email");$("#mDl").onclick=()=>setMode("dl");
 function showCopy(){
   if(!myCopy||!D)return;const r=D.sends.find(x=>x.id===myCopy);if(!r)return;const f=r.fields,box=$("#dlBox");
   if(f.Status==="Ready"&&f.PDF&&f.PDF[0]){box.className="msg ok";box.innerHTML="";box.append("Your copy is ready. ");
@@ -265,20 +270,20 @@ function showCopy(){
 $("#send").onclick=async()=>{
   if(mode==="dl"){
     const cs=[$("#c1").value,$("#c2").value].filter(Boolean);
-    if(!cs.length||cs[0]===cs[1]){flash("Pick who goes in the contact box (two different people, or one).","err");return;}
+    if(!cs.length||cs[0]===cs[1]){flash("Pick the contact person for the one-pager (one, or two different people).","err");return;}
     const b=$("#send");b.disabled=true;b.textContent="Starting…";
     try{const j=await post({a:"opcopy",contacts:cs.join("|"),oneoff:$("#oneoff").value.trim()});if(!j.ok)throw new Error("fail");
       myCopy=j.id;$("#oneoff").value="";flash("");await refresh();}
     catch(e){flash(e.message==="auth"?"This link isn't recognized. Use the personal link Kevin sent you.":"That didn't go through. Try again in a minute.","err");}
     b.disabled=false;b.textContent="Make my copy";return;
   }
-  const to=$("#to").value.trim();if(!/^[^@\s,;]+@[^@\s,;]+\.[A-Za-z]{2,}$/.test(to)){$("#to").focus();flash("Enter one email address.","err");return;}
+  const to=$("#to").value.trim();if(!/^[^@\s,;]+@[^@\s,;]+\.[A-Za-z]{2,}$/.test(to)){$("#to").focus();flash("Enter the recipient's email address.","err");return;}
   const cs=[$("#c1").value,$("#c2").value].filter(Boolean);
-  if(!cs.length||cs[0]===cs[1]){flash("Pick who goes in the contact box (two different people, or one).","err");return;}
+  if(!cs.length||cs[0]===cs[1]){flash("Pick the contact person for the one-pager (one, or two different people).","err");return;}
   const b=$("#send");b.disabled=true;b.textContent="Sending…";
   try{const j=await post({a:"opsend",to,name:$("#nm").value.trim(),note:$("#note").value.trim(),contacts:cs.join("|"),oneoff:$("#oneoff").value.trim()});
     if(!j.ok)throw new Error("fail");
-    $("#to").value="";$("#nm").value="";$("#note").value="";$("#oneoff").value="";flash("Making the PDF with "+cs.join(" and ")+" in the contact box. It goes to "+to+" in a couple of minutes, with you in CC.");await refresh();}
+    $("#to").value="";$("#nm").value="";$("#note").value="";$("#oneoff").value="";flash("Making the PDF with "+cs.join(" and ")+" as the contact. It goes to "+to+" in a couple of minutes, with you in CC.");await refresh();}
   catch(e){flash(e.message==="auth"?"This link isn't recognized. Use the personal link Kevin sent you.":"That didn't send. Try again in a minute.","err");}
   b.disabled=false;b.textContent="Send the one-pager";
 };
