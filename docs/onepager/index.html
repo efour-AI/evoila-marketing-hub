@@ -191,7 +191,7 @@ function renderPickers(){
   const mine=act.find(c=>D.me&&c.fields.Name.toLowerCase().startsWith(D.me.toLowerCase()));
   const def=picked||(mine?[mine.fields.Name,""]:curContacts());
   [["#c1",0,false],["#c2",1,true]].forEach(([id,i,none])=>{const s=$(id);s.innerHTML="";
-    if(none)s.appendChild(new Option("No second contact person",""));
+    if(none)s.appendChild(new Option("+ Second contact (optional)",""));
     act.forEach(c=>{const f=c.fields;s.appendChild(new Option(f.Name,f.Name));});
     s.value=act.some(c=>c.fields.Name===def[i])?def[i]:(none?"":(act[0]?act[0].fields.Name:""));
     s.onchange=()=>{picked=[$("#c1").value,$("#c2").value];hintPick();};});
