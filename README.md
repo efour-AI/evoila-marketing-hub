@@ -76,6 +76,10 @@ field, JSON in the `onepager/copy.json` format). The Current row is what the hub
    checks they fit, attaches the PDF and sets Queued. "One-pager: send" then emails it with the sender in CC
    and as reply-to, and sets Status = Sent. If the contacts don't fit: Problems found, and "One-pager: send
    failed, tell the sender" emails the reason.
+4. Download it: same form, "Download it" mode (Make route opcopy). The Sends row is Kind = Download; the job
+   renders the copy (contacts plus any "changes just for this copy", applied by Claude with the same checks,
+   never saved as a version) and sets Status = Ready; the page shows the download link. Contact boxes shrink
+   their text to fit (down to 6pt) before the fit check fails, and 10-digit phones are formatted.
 
 To ban another word on the one-pager, add it to `onepager/rules.json`. Layout changes are made in
 `template.html` by hand (check with `python onepager/onepager.py --local onepager/copy.json out/`).

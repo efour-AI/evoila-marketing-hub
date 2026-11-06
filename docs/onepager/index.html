@@ -41,6 +41,9 @@ textarea{min-height:96px;resize:vertical}
 .btn{display:inline-block;font:inherit;font-weight:600;font-size:15px;border:0;border-radius:10px;padding:11px 18px;color:#fff;background:var(--indigo);cursor:pointer;margin-top:12px;text-decoration:none}
 .btn.ghost{background:transparent;color:var(--indigo);border:1px solid var(--line)}
 @media (prefers-color-scheme:dark){.btn.ghost{color:var(--ink)}}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.seg button{font:inherit;font-size:14px;font-weight:600;border:0;background:transparent;color:var(--muted);padding:8px 14px;cursor:pointer}
+.seg button.on{background:var(--violet);color:#fff}
 .btn.sm{font-size:13px;padding:6px 12px;margin-top:0}
 .btn:disabled{opacity:.6;cursor:wait}
 .msg{padding:12px 14px;border-radius:10px;margin:0 0 12px;font-size:14px}
@@ -78,18 +81,22 @@ tr:first-child td{border-top:0}
   </div>
   <div>
    <div class="card" id="sendCard">
-    <h2>Send it</h2>
-    <p class="hint" style="margin-top:0">Emails the current version from evoila with you in CC, made with the people you pick for the contact box. Replies come to you.</p>
-    <div class="two">
+    <h2>Send it or download it</h2>
+    <div class="seg" role="tablist"><button type="button" id="mEmail" class="on">Email it for me</button><button type="button" id="mDl">Download it</button></div>
+    <p class="hint" id="modeHint" style="margin-top:8px">Emails the current version from evoila with you in CC, made with the people you pick for the contact box. Replies come to you.</p>
+    <div class="two" id="emailFields">
      <div><label class="l" for="to">Their email</label><input id="to" type="email" autocomplete="off" placeholder="name@company.com"></div>
      <div><label class="l" for="nm">Their first name (optional)</label><input id="nm" type="text" autocomplete="off" placeholder="Jordan"></div>
     </div>
     <label class="l">Contact box at the bottom</label>
     <div class="two"><select id="c1" aria-label="First contact"></select><select id="c2" aria-label="Second contact"></select></div>
     <div class="hint" id="cHint" style="margin-top:4px"></div>
-    <label class="l" for="note">Your note (optional)</label>
-    <textarea id="note" placeholder="Good talking today. Here's the overview I mentioned."></textarea>
+    <label class="l" for="oneoff">Changes just for this copy (optional)</label>
+    <textarea id="oneoff" style="min-height:64px" placeholder="e.g. Use 'Federal & SLED' as the first industry. Only this copy changes; the current version stays as it is."></textarea>
+    <div id="noteWrap"><label class="l" for="note">Your note (optional)</label>
+    <textarea id="note" placeholder="Good talking today. Here's the overview I mentioned."></textarea></div>
     <button class="btn" id="send" type="button">Send the one-pager</button>
+    <div id="dlBox" class="msg ok hidden" style="margin:12px 0 0"></div>
    </div>
    <div class="card" id="editCard">
     <h2>Make a new version</h2>
@@ -102,7 +109,7 @@ tr:first-child td{border-top:0}
  </div>
  <div class="card" id="history"><h2>Versions</h2><div class="loading">Loading…</div></div>
  <div class="card" id="people"><h2>People who can go in the contact box</h2><div class="loading">Loading…</div></div>
- <div class="card" id="sends"><h2>Sent recently</h2><div class="loading">Loading…</div></div>
+ <div class="card" id="sends"><h2>Sent and downloaded recently</h2><div class="loading">Loading…</div></div>
  <p class="hint">Internal only. Layout lives in the hub repo (onepager/template.html); words and versions in the One-pager Versions table.</p>
 </main>
 <div class="zoom hidden" id="zoom"><img id="zimg" alt="One-pager preview"></div>
@@ -158,12 +165,14 @@ function renderHistory(){
     c.appendChild(row);});
 }
 function renderSends(){
-  const c=$("#sends");c.innerHTML="";c.appendChild(el("h2",null,"Sent recently"));
+  const c=$("#sends");c.innerHTML="";c.appendChild(el("h2",null,"Sent and downloaded recently"));
   if(!D.sends.length){c.appendChild(el("div","hint","Nothing sent from the hub yet."));return;}
   const tb=el("table");D.sends.forEach(s=>{const f=s.fields,tr=el("tr");
-    tr.appendChild(el("td",null,(f["Recipient name"]?f["Recipient name"]+" · ":"")+(f.To||"")));
+    const who=el("td",null,f.Kind==="Download"?"Downloaded copy":(f["Recipient name"]?f["Recipient name"]+" · ":"")+(f.To||""));
+    if(f.Kind==="Download"&&f.PDF&&f.PDF[0]){who.append(" · ");const a=el("a",null,"PDF");a.href=f.PDF[0].url;a.target="_blank";a.rel="noopener";who.appendChild(a);}
+    tr.appendChild(who);
     tr.appendChild(el("td","hint",(f.Version||"")+(f.Contacts?" · "+f.Contacts.split("|").map(x=>x.trim().split(" ")[0]).join(" & "):"")));tr.appendChild(el("td","hint",f["Sent by"]||""));
-    const st=f.Status==="Sent"?"":f.Status==="Problems found"?"Not sent · ":"Sending · ";
+    const st=f.Status==="Sent"||f.Status==="Ready"?"":f.Status==="Problems found"?(f.Kind==="Download"?"Not made · ":"Not sent · "):(f.Kind==="Download"?"Making · ":"Sending · ");
     tr.appendChild(el("td",f.Status==="Problems found"?"prob":"hint",st+day(f.Created)));tb.appendChild(tr);
     if(f.Status==="Problems found"&&f.Problems){const r2=el("tr");const td=el("td","prob",f.Problems);td.colSpan=4;r2.appendChild(td);tb.appendChild(r2);}});
   c.appendChild(tb);
@@ -218,12 +227,12 @@ function renderPeople(){
 }
 async function refresh(){
   D=await post({a:"opget"});D.versions=D.versions||[];D.sends=D.sends||[];D.contacts=D.contacts||[];
-  renderCurrent();renderHistory();renderSends();renderPickers();renderPeople();
+  renderCurrent();renderHistory();renderSends();renderPickers();renderPeople();showCopy();
   if(watching){const v=D.versions.find(x=>x.id===watching);
     if(v&&v.fields.Status==="Current"){flash((v.fields.Version||"The new version")+" is live. It's what the hub sends from now on.");watching=null;}
     else if(v&&v.fields.Status==="Problems found"){flash("That change wasn't published. The reason is under Versions, and the current version is unchanged.","err");watching=null;}}
   clearTimeout(timer);
-  if(watching||D.versions.some(v=>v.fields.Status==="Building")||D.sends.some(s=>s.fields.Status==="Preparing"||s.fields.Status==="Queued"))timer=setTimeout(()=>refresh().catch(()=>{}),12000);
+  if(watching||myCopy||D.versions.some(v=>v.fields.Status==="Building")||D.sends.some(s=>s.fields.Status==="Preparing"||s.fields.Status==="Queued"))timer=setTimeout(()=>refresh().catch(()=>{}),12000);
 }
 async function restore(v,b){
   if(!confirm("Make "+(v.fields.Version||"this version")+" the current one-pager again? It comes back as a new version, so nothing is lost."))return;
@@ -239,14 +248,37 @@ $("#edit").onclick=async()=>{
   catch(e){flash(e.message==="auth"?"This link isn't recognized. Use the personal link Kevin sent you.":"That didn't go through. Try again in a minute.","err");}
   b.disabled=false;b.textContent="Make the new version";
 };
+let mode="email",myCopy=null;
+function setMode(m){mode=m;$("#mEmail").classList.toggle("on",m==="email");$("#mDl").classList.toggle("on",m==="dl");
+  $("#emailFields").classList.toggle("hidden",m==="dl");$("#noteWrap").classList.toggle("hidden",m==="dl");
+  $("#send").textContent=m==="dl"?"Make my copy":"Send the one-pager";
+  $("#modeHint").textContent=m==="dl"?"Makes a PDF of the current version with the people you pick for the contact box, for you to download and send yourself. Nothing is emailed and the current version doesn't change.":"Emails the current version from evoila with you in CC, made with the people you pick for the contact box. Replies come to you.";}
+$("#mEmail").onclick=()=>setMode("email");$("#mDl").onclick=()=>setMode("dl");
+function showCopy(){
+  if(!myCopy||!D)return;const r=D.sends.find(x=>x.id===myCopy);if(!r)return;const f=r.fields,box=$("#dlBox");
+  if(f.Status==="Ready"&&f.PDF&&f.PDF[0]){box.className="msg ok";box.innerHTML="";box.append("Your copy is ready. ");
+    const a=el("a",null,"Download the PDF");a.href=f.PDF[0].url;a.target="_blank";a.rel="noopener";a.style.fontWeight="700";box.appendChild(a);
+    if(f.Changes){const ul=el("ul","changes");lines(f.Changes).forEach(x=>ul.appendChild(el("li",null,x)));box.appendChild(ul);}myCopy=null;}
+  else if(f.Status==="Problems found"){box.className="msg err";box.textContent=f.Problems||"Your copy wasn't made.";myCopy=null;}
+  else{box.className="msg wait";box.textContent="Making your copy. This takes about a minute, longer with changes. Keep this page open.";}
+}
 $("#send").onclick=async()=>{
+  if(mode==="dl"){
+    const cs=[$("#c1").value,$("#c2").value].filter(Boolean);
+    if(!cs.length||cs[0]===cs[1]){flash("Pick who goes in the contact box (two different people, or one).","err");return;}
+    const b=$("#send");b.disabled=true;b.textContent="Starting…";
+    try{const j=await post({a:"opcopy",contacts:cs.join("|"),oneoff:$("#oneoff").value.trim()});if(!j.ok)throw new Error("fail");
+      myCopy=j.id;$("#oneoff").value="";flash("");await refresh();}
+    catch(e){flash(e.message==="auth"?"This link isn't recognized. Use the personal link Kevin sent you.":"That didn't go through. Try again in a minute.","err");}
+    b.disabled=false;b.textContent="Make my copy";return;
+  }
   const to=$("#to").value.trim();if(!/^[^@\s,;]+@[^@\s,;]+\.[A-Za-z]{2,}$/.test(to)){$("#to").focus();flash("Enter one email address.","err");return;}
   const cs=[$("#c1").value,$("#c2").value].filter(Boolean);
   if(!cs.length||cs[0]===cs[1]){flash("Pick who goes in the contact box (two different people, or one).","err");return;}
   const b=$("#send");b.disabled=true;b.textContent="Sending…";
-  try{const j=await post({a:"opsend",to,name:$("#nm").value.trim(),note:$("#note").value.trim(),contacts:cs.join("|")});
+  try{const j=await post({a:"opsend",to,name:$("#nm").value.trim(),note:$("#note").value.trim(),contacts:cs.join("|"),oneoff:$("#oneoff").value.trim()});
     if(!j.ok)throw new Error("fail");
-    $("#to").value="";$("#nm").value="";$("#note").value="";flash("Making the PDF with "+cs.join(" and ")+" in the contact box. It goes to "+to+" in a couple of minutes, with you in CC.");await refresh();}
+    $("#to").value="";$("#nm").value="";$("#note").value="";$("#oneoff").value="";flash("Making the PDF with "+cs.join(" and ")+" in the contact box. It goes to "+to+" in a couple of minutes, with you in CC.");await refresh();}
   catch(e){flash(e.message==="auth"?"This link isn't recognized. Use the personal link Kevin sent you.":"That didn't send. Try again in a minute.","err");}
   b.disabled=false;b.textContent="Send the one-pager";
 };

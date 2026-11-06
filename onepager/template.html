@@ -64,7 +64,7 @@ h2{font-weight:500;font-size:10pt;line-height:12pt}
 #contacts{left:18pt;top:695.5pt;width:280.9pt;height:68.2pt;border-radius:12pt}
 #contacts .rule{left:166pt;top:13.7pt;width:0;height:44.2pt;border-left:.5pt solid #a99c91}
 .person{top:8.6pt;height:59pt}
-.person .gap{height:5.6pt}
+.person .gap{height:4.5pt}
 #p1{left:68.5pt;width:95pt}
 #p2{left:184pt;width:94pt}
 #blobs{left:0;top:660pt;width:80pt;height:132pt;z-index:2}
@@ -95,7 +95,7 @@ h2{font-weight:500;font-size:10pt;line-height:12pt}
 <div id="ver" class="abs list" data-fit="Industry verticals"></div>
 <div id="creds" class="abs" data-fit="Credentials bar"></div>
 <div id="facts" class="abs" data-fit="Operations facts"></div>
-<div id="contacts" class="abs beige"><div class="rule abs"></div><div id="p1" class="abs person" data-fit="Contact 1"></div><div id="p2" class="abs person" data-fit="Contact 2"></div></div>
+<div id="contacts" class="abs beige"><div class="rule abs"></div><div id="p1" class="abs person" data-fit="Contact 1" data-shrink></div><div id="p2" class="abs person" data-fit="Contact 2" data-shrink></div></div>
 <img id="blobs" class="abs" src="assets/blobs.svg" alt="">
 <div id="trust" class="abs"><h2></h2><div id="trustbody" data-fit="Why partners trust evoila"></div></div>
 <div id="footer" class="abs" data-fit="Footer"></div>
@@ -103,6 +103,13 @@ h2{font-weight:500;font-size:10pt;line-height:12pt}
 function esc(s){return String(s==null?"":s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");}
 function md(s){return esc(s).replace(/\*\*(.+?)\*\*/g,"<b>$1</b>").replace(/\n/g,"<br>");}
 function $(id){return document.getElementById(id);}
+// 6142883942 / 614-288-3942 / +16142883942 -> +1 (614) 288-3942; anything else is shown as typed.
+function phone(v){const d=String(v||"").replace(/\D/g,"");if(d.length===10)return `+1 (${d.slice(0,3)}) ${d.slice(3,6)}-${d.slice(6)}`;
+  if(d.length===11&&d[0]==="1")return `+1 (${d.slice(1,4)}) ${d.slice(4,7)}-${d.slice(7)}`;return v||"";}
+// Boxes marked data-shrink step their text down (to 6pt at the smallest) until it fits, instead of failing.
+function shrinkToFit(){document.querySelectorAll("[data-shrink]").forEach(el=>{let fs=7.5;
+  while((el.scrollHeight>el.clientHeight+1||el.scrollWidth>el.clientWidth+1)&&fs>6){fs-=0.25;
+    el.style.fontSize=fs+"pt";el.style.lineHeight=(fs*1.36).toFixed(2)+"pt";}});}
 function render(c){
   $("headline").innerHTML=c.headline.map(md).join("<br>");
   $("intro").innerHTML=md(c.intro);
@@ -121,7 +128,7 @@ function render(c){
   $("creds").innerHTML=c.credentials.map(md).join("<br>");
   $("facts").innerHTML=c.facts.map(f=>`<div class="f"><b>${md(f.title)}</b><br>${md(f.text)}</div>`).join("");
   ["p1","p2"].forEach((id,i)=>{const p=c.contacts[i];if(!p){$(id).style.display="none";return;}
-    const lines=[p.phone,p.email].filter(Boolean).map(md).join("<br>");
+    const lines=[phone(p.phone),p.email].filter(Boolean).map(md).join("<br>");
     $(id).innerHTML=`<b>${md(p.name)}</b><br>${md(p.title)}<div class="gap"></div>${lines}`;});
   if(c.contacts.length<2){document.querySelector("#contacts .rule").style.display="none";$("p1").style.width="200pt";}
   document.querySelector("#trust h2").innerHTML=md(c.trust_title);
@@ -130,6 +137,7 @@ function render(c){
 }
 // Returns the names of boxes whose text does not fit, and outlines them in red.
 function fitCheck(){
+  shrinkToFit();
   const bad=[];
   document.querySelectorAll("[data-fit]").forEach(el=>{
     const over=el.scrollHeight>el.clientHeight+1||el.scrollWidth>el.clientWidth+1;

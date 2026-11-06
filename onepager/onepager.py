@@ -31,7 +31,8 @@ F = {"version": "fld12J8ryv2cRuncA", "number": "fldybNjNKEob6CsDl", "status": "f
      "pdf": "fld6mbJWsEXJrRuCI", "preview": "fldkUl4JU3ElviDva"}
 TS = "tblh9HWt19eNVucUZ"   # One-pager Sends
 S = {"to": "fldh916SqGqrkN6EI", "by": "fldLZ4jSjmn7JIiVz", "version": "fld1MnyOErK7Kw1xZ", "pdf": "fldgCnO0TYGdCH5yt",
-     "status": "fldbG4VfpHk5WCsJq", "contacts": "fldoZcVV22LFFgJVi", "problems": "fldech2hQFjnJsI50"}
+     "status": "fldbG4VfpHk5WCsJq", "contacts": "fldoZcVV22LFFgJVi", "problems": "fldech2hQFjnJsI50",
+     "kind": "fldOU0e0tBzGCmicP", "oneoff": "fldCY81NJzZm5OWNO", "changes": "fldP37fAWhXFnUkG7"}
 TC = "tblgzDaANpuDgr8an"   # One-pager Contacts
 C = {"name": "fld6DeyjzbLGL2Jcp", "title": "fld9DocPIoSA2k1bw", "phone": "fldcC8LGTVnXVjdod", "email": "fldfGbYN8OVvXiRZs",
      "active": "fld6aPnJaMwytNd77"}
@@ -224,6 +225,28 @@ def tidy(page):
     return walk(page)
 
 
+def edit_loop(base_page, request, who, pdf, png):
+    """Claude applies the request to base_page; the result must pass the rules and the fit check (two retries).
+    Returns page, changes, not_applied, problems. A clean result leaves the rendered PDF and preview at pdf, png."""
+    spec, msgs, tool_id = claude_edit(base_page, request, who)
+    for attempt in range(3):
+        page = tidy(spec["page"])
+        problems = shape_problems(page) + rule_problems(page)
+        if not problems:
+            problems = [f'"{b}" no longer fits its box.' for b in render(page, pdf, png)]
+        if not problems or attempt == 2:
+            break
+        print(f"attempt {attempt + 1}: {len(problems)} problems, asking Claude to fix")
+        note = ("Your page has these problems. Fix only these, keep everything else as you had it, and call "
+                "submit_onepager again with the full page:\n- " + "\n- ".join(problems) +
+                "\nFor text that no longer fits, shorten those boxes: same meaning, fewer words.")
+        spec, msgs, tool_id = claude_edit(base_page, request, who, extra=msgs[1:] + [
+            {"role": "user", "content": [{"type": "tool_result", "tool_use_id": tool_id, "content": note}]}])
+    changes = [str(c).strip() for c in spec.get("changes") or [] if str(c).strip()]
+    skipped = [str(c).strip() for c in spec.get("not_applied") or [] if str(c).strip()]
+    return page, changes, skipped, problems
+
+
 # ------------------------------------------------------------------ main
 def build(rid):
     row = get(rid)["fields"]
@@ -252,23 +275,7 @@ def build(rid):
     else:
         if not request:
             raise RuntimeError("The row has no request, no copy and nothing to restore.")
-        spec, msgs, tool_id = claude_edit(cur_page, request, who)
-        for attempt in range(3):
-            page = tidy(spec["page"])
-            problems = shape_problems(page) + rule_problems(page)
-            if not problems:
-                over = render(page, pdf, png)
-                problems = [f'"{b}" no longer fits its box.' for b in over]
-            if not problems or attempt == 2:
-                break
-            print(f"attempt {attempt + 1}: {len(problems)} problems, asking Claude to fix")
-            note = ("Your page has these problems. Fix only these, keep everything else as you had it, and call "
-                    "submit_onepager again with the full page:\n- " + "\n- ".join(problems) +
-                    "\nFor text that no longer fits, shorten those boxes: same meaning, fewer words.")
-            spec, msgs, tool_id = claude_edit(cur_page, request, who, extra=msgs[1:] + [
-                {"role": "user", "content": [{"type": "tool_result", "tool_use_id": tool_id, "content": note}]}])
-        changes = [str(c).strip() for c in spec.get("changes") or [] if str(c).strip()]
-        skipped = [str(c).strip() for c in spec.get("not_applied") or [] if str(c).strip()]
+        page, changes, skipped, problems = edit_loop(cur_page, request, who, pdf, png)
 
     if problems:
         patch(rid, {F["status"]: "Problems found", F["copy"]: json.dumps(page, ensure_ascii=False, indent=2),
@@ -296,8 +303,10 @@ def build(rid):
 
 
 def prepare_send(rid):
-    """A send from the hub: render the Current words with the contacts the sender picked, attach the PDF to the
-    One-pager Sends row and set it to Queued, which lets "One-pager: send" email it."""
+    """A send or a download copy from the hub: the Current words with the contacts the sender picked, plus any
+    one-off wording change (Claude, same checks as a version, never saved as a version). The PDF goes on the
+    One-pager Sends row. Kind = Email: Status Queued, which lets "One-pager: send" email it. Kind = Download:
+    Status Ready, and the hub page shows the download link."""
     row = get(rid, TS)["fields"]
     cur = next((r for r in all_rows() if sel(r["fields"].get(F["status"])) == "Current"), None)
     if not cur:
@@ -318,22 +327,32 @@ def prepare_send(rid):
                            "phone": p.get(C["phone"], ""), "email": p.get(C["email"], "")})
         if chosen:
             page["contacts"] = chosen
+    download = sel(row.get(S["kind"])) == "Download"
+    oneoff = (row.get(S["oneoff"]) or "").strip()
     WORK.mkdir(exist_ok=True)
     pdf, png = WORK / f"evoila_onepager_US_{version}.pdf", WORK / "send_preview.png"
-    if not problems:
+    changes, skipped = [], []
+    if not problems and oneoff:
+        page, changes, skipped, problems = edit_loop(page, oneoff + "\n(This change is for one copy only.)",
+                                                     row.get(S["by"]) or "", pdf, png)
+    elif not problems:
         problems = shape_problems(page) + rule_problems(page)
-    if not problems:
-        problems = [f'"{b}" no longer fits its box. Use a shorter title.' for b in render(page, pdf, png)]
+        if not problems:
+            problems = [f'"{b}" no longer fits its box. Use a shorter title.' for b in render(page, pdf, png)]
     if problems:
+        lead = "Your copy was not made." if download else "Not sent."
         patch(rid, {S["status"]: "Problems found", S["version"]: version,
-                    S["problems"]: "Not sent.\n- " + "\n- ".join(problems)}, TS)
+                    S["problems"]: lead + "\n- " + "\n- ".join(problems + ["Not applied: " + x for x in skipped])}, TS)
         print("send problems:", len(problems))
         return
     b64 = base64.b64encode(pdf.read_bytes()).decode()
     patch(rid, {S["pdf"]: [], S["version"]: version}, TS)
     api("POST", f"https://content.airtable.com/v0/{BASE}/{rid}/{S['pdf']}/uploadAttachment",
         {"contentType": "application/pdf", "file": b64, "filename": pdf.name})
-    patch(rid, {S["status"]: "Queued", S["problems"]: ""}, TS)
+    summary = "\n".join("- " + c for c in changes)
+    if skipped:
+        summary += "\nNot applied:\n" + "\n".join("- " + x for x in skipped)
+    patch(rid, {S["status"]: "Ready" if download else "Queued", S["problems"]: "", S["changes"]: summary}, TS)
     print("send prepared", version, len(page["contacts"]), "contacts")
 
 
