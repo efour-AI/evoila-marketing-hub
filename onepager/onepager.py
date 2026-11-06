@@ -197,15 +197,20 @@ def claude_edit(current, request, who, extra=None):
     if extra:
         messages += extra
     tools = [{"name": "submit_onepager", "description": "Submit the full revised page.", "input_schema": SCHEMA}]
+    # No forced tool_choice: the current model doesn't accept it (same as the other hub jobs). If Claude answers
+    # without the tool, it is told to call it and asked again.
     for _ in range(3):
-        resp = ai_steps._call({"model": ai_steps.MODEL, "max_tokens": 12000, "tools": tools,
-                               "tool_choice": {"type": "tool", "name": "submit_onepager"}, "messages": messages}, timeout=300)
+        resp = ai_steps._call({"model": ai_steps.MODEL, "max_tokens": 12000, "tools": tools, "messages": messages},
+                              timeout=300)
         content = resp.get("content", [])
         spec = next((b.get("input") for b in content if b.get("type") == "tool_use"), None)
         if isinstance(spec, dict) and isinstance(spec.get("page"), dict):
             return spec, messages + [{"role": "assistant", "content": content}], \
                 next(b["id"] for b in content if b.get("type") == "tool_use")
         print("retry, stop_reason", resp.get("stop_reason"))
+        if content and not any(b.get("type") == "tool_use" for b in content):
+            messages = messages + [{"role": "assistant", "content": content},
+                                   {"role": "user", "content": "Call submit_onepager now with the complete page."}]
     raise RuntimeError("Claude returned no page")
 
 
@@ -376,7 +381,9 @@ if __name__ == "__main__":
             try:
                 prepare_send(rid)
             except Exception as e:
-                patch(rid, {S["status"]: "Problems found", S["problems"]: "Not sent. (" + str(e)[:300] + ")"}, TS)
+                lead = "Your copy was not made." if sel(get(rid, TS)["fields"].get(S["kind"])) == "Download" else "Not sent."
+                patch(rid, {S["status"]: "Problems found", S["problems"]: lead + " Something went wrong; tell Kevin. (" +
+                            str(e)[:200] + ")"}, TS)
                 raise
             sys.exit(0)
         build(rid)
