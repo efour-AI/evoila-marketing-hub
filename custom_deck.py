@@ -258,48 +258,62 @@ def render(spec, tpl_path, out, meta, engine_dir):
     from pptx.util import Inches as _Inch
 
     def cover(s):
+        """Cover: title block in the upper half, meeting details and presenters in their own band at the bottom,
+        everything on the logo's left edge and clear of the artwork."""
         sld = new(prs, "cover")
+        LX, CW = 0.72, 4.75
+        ttl = spec.get("title") or "evoila"
         for ph in sld.placeholders:
             if ph.placeholder_format.idx == 0:
-                ph.text = spec.get("title") or "evoila"
+                ph.text = ttl
             elif ph.placeholder_format.idx == 1:
                 ph.text = "EVOILA  |  NORTH AMERICA"
-        sub = spec.get("subtitle") or ""
-        CW = 4.25                                 # clear of the cover artwork; stacked from the bottom up
-        people = meta.get("people") or []
-        lines_p = [[(f"{p['name']}, {p['title']}", {})] for p in people]
-        ph_ = 0.27 * max(1, len(lines_p))
-        py_ = 7.02 - ph_
-        if lines_p:
-            text(sld, 1.0, py_, CW, ph_, lines_p, size=12, color=SOFT)
-        ml = [[(x, {"size": 14 if i == 0 else 12, "bold": i == 0, "color": GREEN if i == 0 else SOFT})]
-              for i, x in enumerate([x for x in (meta.get("meeting_lines") or []) if x])]
-        y = py_ - 0.3
-        if ml:
-            mh = sum(BL.para_h(m, CW, 12) for m in ml) + 0.05 * (len(ml) - 1) + 0.08
-            y -= mh
-            text(sld, 1.0, y, CW, mh, ml, size=13, color=GREEN, spacing=3)
-            y -= 0.22
-        if sub:
-            sz = 15 if len(sub) <= 44 else 14
-            sh_ = BL.para_h(sub, CW + 0.4, sz) + 0.05
-            y -= sh_
-            text(sld, 1.0, y, CW + 0.4, sh_, sub, size=sz, color=SOFT)
-        ttl = spec.get("title") or "evoila"
-        ts = 40
-        while True:
-            th = BL.n_lines(ttl, 5.35, ts) * ts * 0.95 / 72 + 0.08
-            if y - 0.2 - th - 0.5 >= 1.75 or ts <= 26:
-                break
+        ts = 44
+        while BL.text_lines(ttl, (CW - 0.15) * 1.2, ts) > 3 and ts > 30:
             ts -= 2
-        ty = y - 0.2 - th
+        th_ = BL.text_lines(ttl, (CW - 0.15) * 1.2, ts) * ts * 1.02 / 72 + 0.1
+        ky = 1.95
+        ty = ky + 0.42
         for ph in sld.placeholders:
-            if ph.placeholder_format.idx == 0:
-                ph.left, ph.top, ph.width, ph.height = _Inch(1.0), _Inch(ty), _Inch(5.35), _Inch(th)
+            if ph.placeholder_format.idx == 1:
+                ph.left, ph.top, ph.width, ph.height = _Inch(LX), _Inch(ky), _Inch(CW), _Inch(0.26)
+            elif ph.placeholder_format.idx == 0:
+                ph.left, ph.top, ph.width, ph.height = _Inch(LX), _Inch(ty), _Inch(CW), _Inch(th_)
                 for r in ph.text_frame.paragraphs[0].runs:
                     r.font.size = Pt(ts)
-            elif ph.placeholder_format.idx == 1:
-                ph.left, ph.top, ph.width, ph.height = _Inch(1.0), _Inch(ty - 0.42), _Inch(4.4), _Inch(0.24)
+        sub = spec.get("subtitle") or ""
+        y = ty + th_ + 0.18
+        if sub:
+            sh_ = BL.para_h(sub, CW - 0.3, 16) + 0.05
+            text(sld, LX, y, CW - 0.3, sh_, sub, size=16, color=SOFT)
+        # bottom band: who it is for and when, then the presenters
+        lines = [x for x in (meta.get("meeting_lines") or []) if x]
+        people = (meta.get("people") or [])[:3]
+        by = 4.75
+        box(sld, LX, by, 0.9, 0.05, grad=(GREEN, BLUE, 0), radius=0)
+        y = by + 0.25
+        if lines:
+            who = lines[0]
+            label = "PREPARED FOR"
+            if who.lower().startswith("prepared for "):
+                who = who[len("prepared for "):]
+            text(sld, LX, y, CW, 0.25, [[(label, {"caps_spacing": 200})]], size=10, bold=True, color=GREEN)
+            paras = [[(who, {"bold": True, "color": WHITE, "size": 16})]]
+            if len(lines) > 1:
+                paras.append([(lines[1], {"color": SOFT, "size": 12})])
+            text(sld, LX, y + 0.27, CW, 0.62, paras, size=16, color=WHITE, spacing=2)
+            y += 1.05
+        if people and len(people) < 3:
+            cw = 2.3
+            for i, p in enumerate(people):
+                x = LX + i * (cw + 0.15)
+                text(sld, x, y, cw, 0.6, [[(p["name"], {"bold": True, "color": WHITE, "size": 13})],
+                                          [(p.get("title") or "", {"color": SOFT, "size": 11})]], size=13, color=WHITE, spacing=2)
+        elif people:                                    # three presenters: one per line, name then title
+            for i, p in enumerate(people):
+                text(sld, LX, y + i * 0.3, CW, 0.3, [[(p["name"], {"bold": True, "color": WHITE, "size": 12}),
+                                                      ("   " + (p.get("title") or ""), {"color": SOFT, "size": 11})]],
+                     size=12, color=WHITE)
         return sld
 
     # ---- measuring helpers: keep every line inside its box
@@ -606,13 +620,24 @@ def render(spec, tpl_path, out, meta, engine_dir):
                 line(sld, X0 + 0.45, y + 0.95, X0 + 0.45, y + gap - 0.05, color="FFFFFF@40", width=1.5, dash=DASH.DASH)
             text(sld, X0 + 1.17, y, 4.8, 0.9, it.get("heading") or it.get("text") or "", size=17, bold=True, color=WHITE,
                  anchor=MSO_ANCHOR.MIDDLE)
-        for i, c in enumerate((meta.get("people") or [])[:2]):
+        ppl = (meta.get("people") or [])[:3]
+        three = len(ppl) == 3
+        for i, c in enumerate(ppl):
+            if three:                                   # three people: shorter cards, same column
+                y = 1.45 + i * 1.42
+                box(sld, 6.95, y, 5.7, 1.3, fill=VIOLET2, alpha=92, line="FFFFFF@20", lw=0.75, radius=0.08)
+                box(sld, 7.2, y + 0.2, 0.9, 0.9, fill="FFFFFF@12", shape=MSO_SHAPE.OVAL)
+                icon(sld, "UserCheck", 7.42, y + 0.42, 0.46, "g")
+                text(sld, 8.35, y + 0.18, 4.1, 0.4, c["name"], size=15, bold=True, color=WHITE)
+                text(sld, 8.35, y + 0.55, 4.1, 0.32, c.get("title") or "", size=12, color=SOFT)
+                text(sld, 8.35, y + 0.87, 4.1, 0.32, c.get("email") or "", size=12, color=GREEN)
+                continue
             y = 1.55 + i * 2.05
             box(sld, 6.95, y, 5.7, 1.8, fill=VIOLET2, alpha=92, line="FFFFFF@20", lw=0.75, radius=0.08)
             box(sld, 7.2, y + 0.3, 1.2, 1.2, fill="FFFFFF@12", shape=MSO_SHAPE.OVAL)
             icon(sld, "UserCheck", 7.5, y + 0.6, 0.6, "g")
             text(sld, 8.65, y + 0.3, 3.8, 0.45, c["name"], size=16, bold=True, color=WHITE)
-            text(sld, 8.65, y + 0.78, 3.8, 0.35, c["title"], size=13, color=SOFT)
+            text(sld, 8.65, y + 0.78, 3.8, 0.35, c.get("title") or "", size=13, color=SOFT)
             text(sld, 8.65, y + 1.15, 3.8, 0.35, c.get("email") or "", size=13, color=GREEN)
         pill(sld, 6.95, 5.85, 2.6, 0.5, "evoila.com/us", fill=GREEN, color=VIOLET, size=14)
         return sld
@@ -802,7 +827,37 @@ def render(spec, tpl_path, out, meta, engine_dir):
             text(sld, bx + 0.86, by, bw - 0.95, bh, hd, size=_fit(hd, 20, 14, 11), bold=True, color=VIOLET, anchor=MSO_ANCHOR.MIDDLE)
         return sld
 
-    draw = dict(cover=cover, agenda=agenda, statement=statement, bullets=bullets, columns=columns, cards=cards,
+    # ---- library: an approved slide from the walking deck library (Live Word doc), for the audience asked
+    lib_doc = meta.get("library_doc")
+    if lib_doc:
+        try:
+            import library_doc as LD
+            BL.LIB = LD.Library(lib_doc)
+        except Exception:
+            pass                                    # no doc: the library builders use their built-in wording
+    BL.CTX.update(prospect=meta.get("company") or None, contacts=meta.get("people") or None)
+    earth = {}
+
+    def library(s):
+        ref = s.get("library") or {}
+        n = str(ref.get("slide") or "").strip()
+        aud = ref.get("audience") if ref.get("audience") in BL.AUD else "Partner"
+        fr = ref.get("framing") if ref.get("framing") in ("Company", "VCF") else "Company"
+        if n == "11" and "img" not in earth:
+            earth["img"] = BL.earth_image(os.path.join(engine_dir, "earth_src.jpeg"), os.path.join(engine_dir, "earth_dark.jpg"))
+        fns = {"2": lambda p: BL.s_hook(p), "3": lambda p: BL.s_proof(p, aud), "4": lambda p: BL.s_who(p, aud),
+               "5": lambda p: BL.s_problems(p, fr, aud), "6": lambda p: BL.s_approach(p, aud),
+               "7": lambda p: BL.s_built(p, aud), "8": lambda p: BL.s_deliver(p, aud, fr),
+               "9": lambda p: BL.s_find(p, aud), "10": lambda p: BL.s_cases(p, aud),
+               "11": lambda p: BL.s_global(p, aud, earth.get("img")), "12": lambda p: BL.s_how(p, aud),
+               "13": lambda p: BL.s_engage(p, aud, meta.get("people"))}
+        if n not in fns:
+            return bullets(dict(s, layout="bullets"))
+        sld = fns[n](prs)
+        dark = n in ("2", "11", "13") or (n in ("3", "9") and aud in ("Broadcom", "Technical team"))
+        return mark(sld, dark)
+
+    draw = dict(library=library, cover=cover, agenda=agenda, statement=statement, bullets=bullets, columns=columns, cards=cards,
                 numbers=numbers, steps=steps, comparison=comparison, quote=quote, closing=closing,
                 table=table, chart=chart, image=image, hub=hub)
     slides = [s for s in spec.get("slides") or [] if isinstance(s, dict)]
@@ -819,7 +874,11 @@ def render(spec, tpl_path, out, meta, engine_dir):
         elif lay in ("table", "chart", "image", "hub"):
             state["dark"] = False
         if s.get("notes"):
-            K.notes(sld, s["notes"])
+            if lay == "library":                     # keep the library's own talk track, add the deck-specific notes on top
+                cur = sld.notes_slide.notes_text_frame.text.strip()
+                K.notes(sld, s["notes"] + ("\n\nFROM THE SLIDE LIBRARY:\n" + cur if cur else ""))
+            else:
+                K.notes(sld, s["notes"])
     BL.set_sections(prs, [("Deck", [e.get("id") for e in prs.slides._sldIdLst])])
     prs.save(out)
     return len(slides)
