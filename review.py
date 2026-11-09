@@ -197,7 +197,8 @@ def _fetch_files(f, tag, need_pdf=True):
 
 def reset():
     """Start of every build: a rebuild starts a fresh review."""
-    rr.update({F_READY: False, F_STATE: "", F_TEXT: "", F_PREV: [], F_SUMMARY: "", F_VER: 1, F_EARLIER: []})
+    rr.update({F_READY: False, F_STATE: "", F_TEXT: "", F_PREV: [], F_SUMMARY: "", F_VER: 1, F_EARLIER: [],
+               "fld1umKyM2DUfQLBj": None})   # Review reminders sent: a rebuilt deck gets its own 2 reminders
 
 
 def prepare():
