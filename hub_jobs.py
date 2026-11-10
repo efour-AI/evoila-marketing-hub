@@ -311,9 +311,9 @@ def render(spec, author, out_png):
     im = spec.get("image") or {}
     head = clean_copy(im.get("headline") or spec.get("title") or "").replace("\n", " ")
     variant = im.get("variant") if im.get("variant") in G.VARIANTS else "ribbon_r"
-    lines = textwrap.wrap(head, width=12 if variant == "block_r" else 17)
-    if variant == "block_r" and len(lines) > 5:          # the colour block takes the right third
-        variant, lines = "ribbon_r", textwrap.wrap(head, width=17)
+    lines = textwrap.wrap(head, width=12 if variant == "block_r" else 17, break_long_words=False)
+    if variant == "block_r" and (len(lines) > 5 or any(len(x) > 12 for x in lines)):          # the colour block takes the right third
+        variant, lines = "ribbon_r", textwrap.wrap(head, width=17, break_long_words=False)
     lines = lines[:5] or ["evoila"]
     acc_words = clean_copy(im.get("accent_words") or "").lower()
     accent_lines = {ln for ln in lines if acc_words and ln.lower() in acc_words} or {lines[-1]}
@@ -324,7 +324,10 @@ def render(spec, author, out_png):
     sub = clean_copy(im.get("subhead") or "")[:44] or None
     if len(lines) >= 5:
         sub = None
-    G.build(out_png, "4:5", dark=dark, variant=variant, kick=(clean_copy(im.get("kicker")) or "#InsightIT")[:28],
+    kicker = clean_copy(im.get("kicker"))[:28]
+    if not kicker or "evoila" in kicker.lower():      # the kicker prints in capitals, and evoila is always lowercase
+        kicker = "#InsightIT"
+    G.build(out_png, "4:5", dark=dark, variant=variant, kick=kicker,
             head=lines, head_accent=accent_lines, accent=col, subhead=sub,
             footer=[author, TITLES.get(author, "evoila US")])
 
