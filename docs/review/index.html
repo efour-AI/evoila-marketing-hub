@@ -56,6 +56,8 @@ main{padding:16px}
 .more{border:0;background:none;color:var(--muted);font:inherit;font-size:13.5px;padding:0 14px 10px;cursor:pointer}
 .liimg{display:block;width:100%;background:var(--soft)}
 .liimg.none{aspect-ratio:1.91/1;display:grid;place-items:center;color:var(--muted);font-size:13px}
+.imgbar{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 14px;border-top:1px solid var(--line,#e6e1dc)}
+.imgbar .btn{margin:0}.imgbar span{color:var(--muted);font-size:13px}
 .lifoot{display:flex;justify-content:space-around;border-top:1px solid var(--line);padding:8px;color:var(--muted);font-size:13px;font-weight:600}
 .edit{width:100%;min-height:340px;border:0;border-top:2px solid var(--indigo);padding:12px 14px;font:inherit;font-size:14.5px;line-height:1.5;color:var(--ink);background:var(--soft);resize:vertical}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;position:sticky;top:12px}
@@ -139,6 +141,7 @@ pre.notes{white-space:pre-wrap;font:inherit;font-size:13px;background:var(--soft
 <script>
 const API="https://hook.us2.make.com/o28rqytj8ifgm1o2tckavp2194d8jbqt";
 const ACT="https://hook.us2.make.com/91mst8q1pr5j2smjck26k4a23tlrcrn8";
+const IMGHOOK="https://hooks.airtable.com/workflows/v1/genericWebhook/appYVahdfC3gbtArV/wflu5dMDA383qAPf9/wtrn7b1QgmKopJcDY";
 const DEV=/Mobi|Android|iPhone|iPad/i.test(navigator.userAgent)?"phone":"desktop";
 const PHOTOS={"Glen Tindal":"img/glen-tindal.jpg","Mark Maisano":"img/mark-maisano.jpg","Andrew Hald":"img/andrew-hald.jpg","Tom MacKay":"img/tom-mackay.jpg"};
 const TITLES={"Glen Tindal":"CEO and Managing Director, evoila US","Mark Maisano":"VP Alliances & Strategy, evoila US","Andrew Hald":"Lead Solution Architect, evoila US","Tom MacKay":"VP of Technical Sales and Services, evoila US","evoila US Page":"Company page"};
@@ -270,8 +273,32 @@ function preview(it){
   const src=imgOf(it);
   if(src){const i=document.createElement("img");i.className="liimg";i.alt="Post image";i.src=src;c.appendChild(i);}
   else if(it.kind==="post"){c.appendChild(el("div","liimg none","No image attached yet"));}
+  if(it.kind==="post"&&copyOf(it))c.appendChild(imageBar(it,!!src));
   if(it.kind==="post"){const f=el("div","lifoot");["Like","Comment","Repost","Send"].forEach(x=>f.appendChild(el("span",null,x)));c.appendChild(f);}
   c._body=body;c._more=more;return c;
+}
+function imageBar(it,has){
+  const bar=el("div","imgbar");const b=el("button","btn"+(has?"":" primary"),has?"Make a new image":"Create image");b.type="button";
+  const st=el("span",null,"");bar.append(b,st);
+  b.onclick=async()=>{
+    if(edited(it)){flash("Save your text edits first, so the image matches them.","err");return;}
+    b.disabled=true;st.textContent="Starting…";
+    try{await fetch(IMGHOOK,{method:"POST",mode:"no-cors",body:new URLSearchParams({t:token,id:it.id,dev:DEV})});st.textContent="Drawing the image. It takes about two minutes.";waitForImage(it,b,st,Date.now());}
+    catch(e){if(e.message==="auth")return fail(e);b.disabled=false;st.textContent="";flash("The image didn't start. Try again in a minute, or tell Kevin.","err");}
+  };
+  return bar;
+}
+async function waitForImage(it,b,st,t0){
+  const before=((it.f.Image||[])[0]||{}).id||"";
+  const tick=async()=>{
+    if(Date.now()-t0>6*60e3){st.textContent="Still drawing. Refresh the page in a minute.";b.disabled=false;return;}
+    try{const d=await call({a:admin?"mlist":"list"});
+      const x=(d.posts||[]).find(r=>r.id===it.id);const a=x&&x.fields&&x.fields.Image&&x.fields.Image[0];
+      if(a&&a.id!==before){it.f.Image=x.fields.Image;flash("The new image is on the post.","ok");draw();return;}
+    }catch(e){}
+    setTimeout(tick,20000);
+  };
+  setTimeout(tick,45000);
 }
 function toggleEdit(on){
   const card=document.querySelector(".li");if(!card)return;

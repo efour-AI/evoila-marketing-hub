@@ -10,6 +10,11 @@ MODE=build-post     A self-serve LinkedIn post (topic + bullets from the hub). C
                     cropped to 4:5), and the row goes to the author for approval (Marketing Approved,
                     Self-serve). Approving it on the review page posts it immediately.
 
+MODE=make-image      Draws the image for a LinkedIn post that has copy but no image (or a new one on request), from the
+                    post text: Claude picks the headline, accent and layout, postgen draws it, it is uploaded to Image.
+                    With RECORD_ID: that post (the hub's "Create image" button). Without: every upcoming post waiting on
+                    marketing or the author that still has no image (also run daily after meeting overviews).
+
 MODE=meeting-overviews  Backfill: writes a short Meeting Overview on Call Transcripts rows from the last
                     60 days that have a transcript and no overview yet. New calls get theirs from the
                     Fireflies scenario in Make.
@@ -375,6 +380,86 @@ def build_post():
     print("post drafted")
 
 
+# ------------------------------------------------------------------ make-image
+
+IMAGE_SCHEMA = {"type": "object", "properties": {"image": POST_SCHEMA["properties"]["image"]}, "required": ["image"]}
+IMAGE_PROMPT = """Below is a LinkedIn post that {author} ({title}) will publish. Design the image that goes with it, then call
+submit_image. The image carries a short headline and the author's name; the post text carries everything else.
+
+- The headline is 6 to 12 words: the post's one idea, specific and readable at a glance. It does not repeat the
+  first line word for word. No hashtags, no customer, partner or competitor names, no figures the post does not state.
+- Pick dark or light, a variant and an accent that suit the topic.{avoid}
+- No em dashes. Write evoila in lowercase.
+
+POST:
+{copy}"""
+WAITING = ("Pending Marketing Review", "Marketing Approved", "Changes Requested")
+
+
+def image_spec(author, copy, avoid=""):
+    prompt = IMAGE_PROMPT.format(author=author, title=TITLES.get(author, ""), copy=copy[:6000],
+                                 avoid=("\n- It is replacing an earlier image; use a different headline and layout from: " + avoid) if avoid else "")
+    tools = [{"name": "submit_image", "description": "Submit the image design.", "input_schema": IMAGE_SCHEMA}]
+    messages = [{"role": "user", "content": prompt}]
+    for _ in range(3):
+        resp = ai_steps._call({"model": ai_steps.MODEL, "max_tokens": 1500, "tools": tools, "messages": messages}, timeout=120)
+        content = resp.get("content", [])
+        spec = next((b.get("input") for b in content if b.get("type") == "tool_use" and b.get("name") == "submit_image"), None)
+        if isinstance(spec, dict) and isinstance(spec.get("image"), dict) and spec["image"].get("headline"):
+            return spec
+        messages.append({"role": "assistant", "content": content})
+        messages.append({"role": "user", "content": "Call submit_image now with every field."})
+    raise RuntimeError("Claude returned no image design")
+
+
+def image_for(rec_id, f):
+    url = f"https://api.airtable.com/v0/{BASE}/{T_POST}/{rec_id}"
+    author = f.get(P["author"]) or ""
+    author = author.get("name") if isinstance(author, dict) else author
+    copy = clean_copy(f.get(P["copy"]) or "")
+    if author not in TITLES or not copy:
+        api("PATCH", url, {"fields": {P["note"]: "No image made: the post needs copy and an author first."}})
+        return False
+    old = (f.get(P["image"]) or [{}])[0].get("filename", "")
+    api("PATCH", url, {"fields": {P["note"]: "Drawing the image…"}})
+    spec = image_spec(author, copy, avoid=old)
+    os.makedirs(WORK, exist_ok=True)
+    png, jpg = os.path.join(WORK, f"img_{rec_id}.png"), os.path.join(WORK, f"img_{rec_id}.jpg")
+    render(spec, author, png)
+    to_jpeg(png, jpg)
+    with open(jpg, "rb") as fh:
+        b64 = base64.b64encode(fh.read()).decode()
+    api("PATCH", url, {"fields": {P["image"]: []}})
+    slug = re.sub("[^a-z0-9]+", "_", (spec["image"].get("headline") or "post").lower()).strip("_")[:40]
+    api("POST", f"https://content.airtable.com/v0/{BASE}/{rec_id}/{P['image']}/uploadAttachment",
+        {"contentType": "image/jpeg", "file": b64,
+         "filename": f"{re.sub('[^A-Za-z]', '', author)}_{slug}_{time.strftime('%Y%m%d%H%M')}.jpg"})
+    api("PATCH", url, {"fields": {P["note"]: "Image ready " + time.strftime("%Y-%m-%d")}})
+    return True
+
+
+def make_images():
+    if REC:
+        f = api("GET", f"https://api.airtable.com/v0/{BASE}/{T_POST}/{REC}?returnFieldsByFieldId=true")["fields"]
+        image_for(REC, f)
+        print("image made for one post")
+        return
+    status = "OR(" + ",".join(f"{{Status}}='{x}'" for x in WAITING) + ")"
+    todo = rows(T_POST, f"AND({status}, {{Post Copy}}!='', NOT({{Image}}), IS_AFTER({{Date Posted}}, DATEADD(TODAY(), -1, 'days')))")
+    done = 0
+    for r in todo:
+        try:
+            done += bool(image_for(r["id"], r["fields"]))
+        except Exception as e:
+            print("one image failed:", type(e).__name__)
+            try:
+                api("PATCH", f"https://api.airtable.com/v0/{BASE}/{T_POST}/{r['id']}",
+                    {"fields": {P["note"]: ("The image could not be drawn. Use Create image on the review page. " + str(e))[:250]}})
+            except Exception:
+                pass
+    print(f"made {done} images for {len(todo)} posts without one")
+
+
 # ------------------------------------------------------------------ revise-copy
 
 T_ART = "tblcTJ5gIwdJvJmGH"
@@ -640,10 +725,16 @@ if __name__ == "__main__":
             build_post()
         elif MODE == "meeting-overviews":
             meeting_overviews()
+            try:
+                make_images()          # daily safety net: no upcoming post waits without an image
+            except Exception as e:
+                print("image sweep failed:", type(e).__name__)
         elif MODE == "voice-cards":
             voice_cards()
         elif MODE == "revise-copy":
             revise_copy()
+        elif MODE == "make-image":
+            make_images()
         else:
             raise SystemExit(f"unknown MODE {MODE!r}")
     except Exception as e:
@@ -653,6 +744,12 @@ if __name__ == "__main__":
             try:
                 api("PATCH", f"https://api.airtable.com/v0/{BASE}/{T_POST}/{REC}",
                     {"fields": {P["note"]: ("Something went wrong drafting this post. Try again, or tell Kevin. " + str(e))[:250]}})
+            except Exception:
+                pass
+        if MODE == "make-image" and REC:
+            try:
+                api("PATCH", f"https://api.airtable.com/v0/{BASE}/{T_POST}/{REC}",
+                    {"fields": {P["note"]: ("The image could not be drawn. Try Create image again, or tell Kevin. " + str(e))[:250]}})
             except Exception:
                 pass
         if MODE == "revise-copy" and REC:

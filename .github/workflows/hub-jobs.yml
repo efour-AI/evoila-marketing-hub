@@ -4,21 +4,22 @@ name: Hub jobs
 #   build-post     - "Self-serve post: draft it" (record = LinkedIn Posts Personal row)
 #   index-library  - "Library: refresh the question bar" (no record needed)
 #   revise-copy    - "Author notes: revise the text" (record = post or article row, table = post|article)
+#   make-image     - "Post image: draw it" (record = LinkedIn Posts Personal row; no record = every upcoming post without one)
 # or by hand from the Actions tab.
 on:
   repository_dispatch:
-    types: [build-post, index-library, meeting-overviews, voice-cards, revise-copy]
+    types: [build-post, index-library, meeting-overviews, voice-cards, revise-copy, make-image]
   schedule:
     - cron: "17 12 * * 1"   # Mondays: rebuild the My voice cards
     - cron: "41 11 * * *"   # daily: meeting overviews and the team conversations the question bar reads
   workflow_dispatch:
     inputs:
       mode:
-        description: "build-post, index-library, meeting-overviews, voice-cards or revise-copy"
+        description: "build-post, index-library, meeting-overviews, voice-cards, revise-copy or make-image"
         required: true
         default: index-library
       record_id:
-        description: "Record ID (build-post and revise-copy)"
+        description: "Record ID (build-post, revise-copy, make-image)"
         required: false
       table:
         description: "post or article (revise-copy only)"
@@ -39,7 +40,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Fonts for the post image
-        if: env.MODE == 'build-post'
+        if: env.MODE == 'build-post' || env.MODE == 'make-image' || env.MODE == 'meeting-overviews'
         run: |
           sudo apt-get install -y -qq --no-install-recommends fonts-crosextra-carlito fonts-dejavu-core > /dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends fonts-crosextra-carlito fonts-dejavu-core > /dev/null)
           fc-cache -f > /dev/null
