@@ -694,6 +694,9 @@ function decks(me,admin){
     const w=el("div","row");w.style.cssText="background:#FDF1D8;border-radius:10px;padding:10px 12px;margin-bottom:10px;align-items:center;justify-content:space-between";
     w.appendChild(el("b",null,"Your deck for "+(d.fields["Company you are meeting with"]||"your meeting")+" is waiting for your review"));
     const a=el("a","btn sm","Review it");a.href=BASE+"deckreview/?d="+d.id;w.appendChild(a);c.appendChild(w);});
+  /* ready-to-use decks: Resource Library rows with Category = Decks */
+  const ready=(D.resources||[]).map(r=>Object.assign({id:r.id},r.fields)).filter(r=>r.Category==="Decks").sort((a,b)=>(a.Order||99)-(b.Order||99));
+  if(ready.length){c.appendChild(el("div","grp","Ready-to-use decks"));const g=el("div","res");ready.forEach(r=>g.appendChild(resCard(r)));c.appendChild(g);}
   c.appendChild(el("div","grp","Recent decks"));
   if(!list.length){c.appendChild(el("div","empty","No decks yet."));return c;}
   const ul=el("ul","list");
