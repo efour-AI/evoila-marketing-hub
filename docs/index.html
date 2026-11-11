@@ -278,9 +278,10 @@ footer{text-align:center;font-size:12px;color:var(--muted);padding:0 16px 28px}
 .stkwrap{overflow-x:auto}
 .stkhead{display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 6px}
 .stkhead .grp{margin:6px 0}
+.stkasof{display:flex;align-items:center;gap:8px;font-size:11.5px;color:var(--muted)}
 .badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--okbg);color:var(--ok);margin-left:6px;vertical-align:1px}
 .badge.live{background:var(--warnbg);color:var(--warn)}
-@media(max-width:640px){.stk .hide-m,.stk .co{display:none}.stk td,.stk th{padding:8px 5px}.stk .pwho img,.stk .pwho i{display:none}}
+@media(max-width:640px){.stk .jab{max-width:130px}.say input{min-width:0;width:100%}.stk tr.thr td{max-width:0}.stk .hide-m,.stk .co{display:none}.stk td,.stk th{padding:8px 5px}.stk .pwho img,.stk .pwho i{display:none}}
 .stk .jab{display:block;font-size:11.5px;font-weight:400;color:var(--muted);font-style:italic;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
 .stk .pwho{align-items:flex-start}.stk .pwho>span{min-width:0}
 .bub{font:inherit;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:3px 10px;cursor:pointer;white-space:nowrap}
@@ -304,6 +305,7 @@ footer{text-align:center;font-size:12px;color:var(--muted);padding:0 16px 28px}
 .feed[open] summary b::after{content:"Close ▴"}
 .feed summary .fl{font-size:12.5px;color:var(--muted);font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .feed[open] summary .fl{display:none}
+@media(max-width:640px){.stk td .jab{max-width:100px}.stk td,.stk th{padding:8px 3px}.stk .rank{width:16px}.bub{padding:2px 6px;font-size:12px}.stk tr.thr td .say input{min-width:0;width:100px}}
 </style>
 <script src="/evoila-marketing-hub/track.js"></script>
 </head>
@@ -1235,7 +1237,7 @@ function stocks(){
       const tk=sel?((STK.find(p=>p.Person===dest&&p["Week of"]===week)||{}).Ticker||""):ticker;
       b.disabled=true;b.textContent="Sending…";
       try{const r=await fetch(STOCK_API,{method:"POST",body:new URLSearchParams({t:token,a:"talkpost",to:dest,msg,week,ticker:tk})});const j=await r.json();if(!j.ok)throw 0;
-        if(sel)TFEED.open=true;TALK.unshift({From:j.from||STK_ME,To:dest,Message:msg,"Week of":week,Ticker:tk,_t:new Date().toISOString()});track("stock talk",dest);fill();}
+        TALK.unshift({From:j.from||STK_ME,To:dest,Message:msg,"Week of":week,Ticker:tk,_t:new Date().toISOString()});track("stock talk",dest);fill();}
       catch(e){b.disabled=false;b.textContent="Send";flash("Couldn't post that. Try again.","err",true);}};
     return f;};
   const fill=()=>{box.innerHTML="";
@@ -1255,7 +1257,7 @@ function stocks(){
     /* this week */
     const hd=el("div","stkhead");const g=el("div","grp","Week of "+fmt(cur,{month:"short",day:"numeric"}));
     g.appendChild(el("span","badge"+(isLive?" live":""),isLive?"Live":"Final"));hd.appendChild(g);
-    if(isLive){const rb=el("button","btn ghost sm","Refresh prices");rb.type="button";rb.onclick=async()=>{rb.disabled=true;await loadQuotes();fill();};hd.appendChild(rb);}
+    if(isLive){const rw=el("span","stkasof");if(QUO_AT)rw.appendChild(el("span",null,"as of "+QUO_AT.toLocaleString([],{month:"short",day:"numeric",hour:"numeric",minute:"2-digit"})));const rb=el("button","btn ghost sm","Refresh prices");rb.type="button";rb.onclick=async()=>{rb.disabled=true;await loadQuotes();fill();};rw.appendChild(rb);hd.appendChild(rw);}
     box.appendChild(hd);
     const tw=el("div","stkwrap"),t=el("table","stk");
     t.innerHTML="<thead><tr><th></th><th>Who</th><th>Pick</th><th class='r hide-m'>Start</th><th class='r'>"+(isLive?"Now":"End")+"</th><th class='r'>Change</th><th class='r'></th></tr></thead>";
@@ -1271,26 +1273,14 @@ function stocks(){
       if(TOPEN===p.Person){const tr2=el("tr","thr");const td=el("td");td.colSpan=7;td.appendChild(talkList(TALL?th:th.slice(0,5)));if(th.length>5){const sa=el("button","btn ghost sm",TALL?"Show less":"Show all "+th.length);sa.type="button";sa.style.marginTop="6px";sa.onclick=()=>{TALL=!TALL;fill();};td.appendChild(sa);}td.appendChild(sayBox(p.Person,cur,p.Ticker,false));tr2.appendChild(td);tb.appendChild(tr2);}});
     t.appendChild(tb);tw.appendChild(t);box.appendChild(tw);
     const lead=curPicks.filter(p=>ret(p)!=null).sort((a,b)=>ret(b)-ret(a))[0];
-    box.appendChild(el("p","measure",isLive?(QUO_AT?"Prices as of "+QUO_AT.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})+" (Yahoo Finance, may lag a few minutes). ":"")+"Final prices lock at 1:00 PM Central on "+fmt(new Date(Date.parse(cur+"T12:00:00")+7*864e5).toISOString().slice(0,10),{weekday:"long",month:"short",day:"numeric"})+".":
-      (lead?first(lead.Person)+" won the week with "+lead.Ticker+" ("+pct(ret(lead))+").":"")));
+    if(!isLive&&lead)box.appendChild(el("p","measure",first(lead.Person)+" won the week with "+lead.Ticker+" ("+pct(ret(lead))+")."));
     /* all-time leaderboard: $100 each, rolled into every week's pick */
     const people=[...new Set(STK.map(p=>p.Person))];
     const stats=people.map(n=>{let pot=100,wk=0,best=null;
       weeks.forEach(w=>{const p=STK.find(x=>x.Person===n&&x["Week of"]===w);const r=p?ret(p):null;if(r==null)return;pot*=1+r;wk++;if(!best||r>best.r)best={r,tk:p.Ticker};});
       const wins=weeks.filter(w=>{const ps=STK.filter(x=>x["Week of"]===w);if(ps.some(x=>x.Status!=="Final"))return false;const top=ps.filter(x=>ret(x)!=null).sort((a,b)=>ret(b)-ret(a))[0];return top&&top.Person===n;}).length;
       return {n,pot,wk,best,wins};}).filter(x=>x.wk).sort((a,b)=>b.pot-a.pot);
-    const two=el("div","grid half");two.style.marginTop="6px";const lcol=el("div"),fcol=el("div");two.append(lcol,fcol);box.appendChild(two);
-    fcol.appendChild(el("div","grp","Trash talk"));
-    const feed=document.createElement("details");feed.className="feed";feed.open=TFEED.open;feed.ontoggle=()=>{TFEED.open=feed.open;};
-    const fs=document.createElement("summary");const last=TALK[0];
-    fs.appendChild(el("b",null,TALK.length?TALK.length+" comment"+(TALK.length===1?"":"s"):"Start the trash talk"));
-    if(last)fs.appendChild(el("span","fl","“"+last.Message+"” "+first(last.From)+" · "+ago(last._t)));
-    feed.appendChild(fs);
-    feed.appendChild(sayBox("Everyone",cur,"",true));
-    const fl=talkList(TALK.slice(0,TFEED.n));fl.style.marginTop="8px";feed.appendChild(fl);
-    if(TALK.length>TFEED.n){const mb=el("button","btn ghost sm","Show "+Math.min(10,TALK.length-TFEED.n)+" more");mb.type="button";mb.style.marginTop="8px";mb.onclick=()=>{TFEED.n+=10;fill();};feed.appendChild(mb);}
-    else if(TFEED.n>5){const lb2=el("button","btn ghost sm","Show less");lb2.type="button";lb2.style.marginTop="8px";lb2.onclick=()=>{TFEED.n=5;fill();};feed.appendChild(lb2);}
-    fcol.appendChild(feed);
+    const lcol=el("div");box.appendChild(lcol);
     if(stats.length){
       lcol.appendChild(el("div","grp","Leaderboard · $100 one-time buy-in, rides every pick"));
       const lw=el("div","stkwrap"),lt=el("table","stk");
