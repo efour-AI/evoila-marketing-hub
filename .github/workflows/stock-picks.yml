@@ -1,0 +1,32 @@
+name: Stock picks
+
+# Weekly stock-pick contest on the hub (stock_picks.py, Airtable table Stock Picks):
+# reads the picks from the marketing call notes, locks the 2:30 PM start price and the next week's 1:00 PM end price.
+# Times below are UTC; the script works in Central time, so these only need to run after 1:00 PM / 2:30 PM Central.
+on:
+  schedule:
+    - cron: "10,40 19-23 * * 3"   # Wednesday afternoons: end prices after 1:00 PM, then the new picks once the call notes land
+    - cron: "40 0-2 * * 4"        # Wednesday evening Central: late call notes
+    - cron: "23 14 * * *"         # daily backstop
+  repository_dispatch:
+    types: [stock-picks]
+  workflow_dispatch:
+
+concurrency:
+  group: stock-picks
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Run
+        env:
+          AIRTABLE_TOKEN: ${{ secrets.AIRTABLE_TOKEN }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: python stock_picks.py

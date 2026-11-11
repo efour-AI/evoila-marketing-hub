@@ -98,3 +98,21 @@ Recent decks built on the hub open the same viewer from their Slide previews.
   empty or the page count changed.
 - The viewer loads through Make scenario "evoila Hub Library Viewer" (6998407): `resget` returns one library
   row (only if Show on hub), `deckpeek` returns a deck's previews and slide titles. Same hub links as the rest.
+
+## Stock picks (hub section "Stock picks", stock_picks.py)
+
+Weekly contest: at the end of the marketing call each person names one stock. Airtable table **Stock Picks**
+(tblBbD5cXBJtKoyC5), one row per person per week.
+
+1. `.github/workflows/stock-picks.yml` runs Wednesday afternoons/evenings and once a day. `stock_picks.py` reads the newest
+   "Marketing and Sales Weekly Sync" in Call Transcripts that has no picks yet, Claude pulls out who picked what, each
+   ticker is checked on Yahoo Finance, and a row is added per person (Status = Waiting for start price, or Check this if
+   the ticker isn't found).
+2. Start price = price at 2:30 PM Central on the call day (Status = Live). End price = price at 1:00 PM Central seven
+   days later (Status = Final).
+3. The hub reads the rows and live prices through Make scenario "evoila Hub Stocks" (7000206): `a=picks` lists the
+   table, `a=quotes&s=AMD,VRT` returns current prices. The page ranks this week live, and the leaderboard rolls a
+   $100 stake through every week's pick (compounded).
+
+To fix a misheard pick: edit Ticker on the row (clear Start price too if it was already locked), then run the workflow
+by hand from the Actions tab. To add a pick by hand: add a row with Week of, Person and Ticker.
