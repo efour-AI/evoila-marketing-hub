@@ -289,14 +289,21 @@ footer{text-align:center;font-size:12px;color:var(--muted);padding:0 16px 28px}
 .talk{list-style:none;margin:0;padding:0}
 .talk li{padding:7px 0;border-top:1px solid var(--line);font-size:13.5px}
 .talk li:first-child{border-top:0}
-.talk .tm{font-size:11.5px;color:var(--muted);margin-bottom:1px}
+.talk .tm{display:block;font-size:11.5px;color:var(--muted);margin-bottom:1px}
+.talk .tx{display:block}
 .talk .tm b{color:var(--ink);font-weight:600}
 .talk .tx{white-space:pre-wrap;word-break:break-word}
 .say{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
 .say input{flex:1;min-width:160px;font:inherit;font-size:13.5px;padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink)}
 .say select{font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink)}
 .feed{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--soft)}
-.feed .talk{max-height:420px;overflow:auto}
+.feed summary{cursor:pointer;list-style:none;display:flex;flex-direction:column;gap:2px}
+.feed summary::-webkit-details-marker{display:none}
+.feed summary b{font-size:13.5px;display:flex;justify-content:space-between}
+.feed summary b::after{content:"Open ▾";font-size:12px;font-weight:600;color:var(--blue)}
+.feed[open] summary b::after{content:"Close ▴"}
+.feed summary .fl{font-size:12.5px;color:var(--muted);font-style:italic;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.feed[open] summary .fl{display:none}
 </style>
 <script src="/evoila-marketing-hub/track.js"></script>
 </head>
@@ -1204,7 +1211,7 @@ function meetings(){
 /* ---------- stock picks ---------- */
 /* One pick each at the end of the Wednesday call. Start = closing price (3:00 PM Central) that day, end = 1:00 PM Central
    the next Wednesday (locked by stock_picks.py). Live rows use the current price. $100 one-time buy-in rides every week's pick. Trash talk lives in Airtable Stock Talk. */
-let STK=null,QUO={},QUO_AT=null,TALK=[],STK_ME="",TOPEN=null;
+let STK=null,QUO={},QUO_AT=null,TALK=[],STK_ME="",TOPEN=null,TALL=false,TFEED={open:false,n:5};
 function stocks(){
   const c=section("stocks","Stock picks","Pick at the Wednesday call · Wednesday close to 1:00 PM next Wednesday, Central");
   const box=el("div");c.appendChild(box);
@@ -1228,7 +1235,7 @@ function stocks(){
       const tk=sel?((STK.find(p=>p.Person===dest&&p["Week of"]===week)||{}).Ticker||""):ticker;
       b.disabled=true;b.textContent="Sending…";
       try{const r=await fetch(STOCK_API,{method:"POST",body:new URLSearchParams({t:token,a:"talkpost",to:dest,msg,week,ticker:tk})});const j=await r.json();if(!j.ok)throw 0;
-        TALK.unshift({From:j.from||STK_ME,To:dest,Message:msg,"Week of":week,Ticker:tk,_t:new Date().toISOString()});track("stock talk",dest);fill();}
+        if(sel)TFEED.open=true;TALK.unshift({From:j.from||STK_ME,To:dest,Message:msg,"Week of":week,Ticker:tk,_t:new Date().toISOString()});track("stock talk",dest);fill();}
       catch(e){b.disabled=false;b.textContent="Send";flash("Couldn't post that. Try again.","err",true);}};
     return f;};
   const fill=()=>{box.innerHTML="";
@@ -1260,8 +1267,8 @@ function stocks(){
       tr.appendChild(el("td","r hide-m",p["Start price"]!=null?usd(p["Start price"]):"locks at close"));
       tr.appendChild(el("td","r",usd(now(p))));tr.appendChild(el("td","r "+cls(r),pct(r)));
       const bt=el("td","r");const bb=el("button","bub"+(TOPEN===p.Person?" on":""),"💬 "+th.length);bb.type="button";bb.title=p.Person===STK_ME?"What they're saying about your pick":"Talk to "+first(p.Person);
-      bb.onclick=()=>{TOPEN=TOPEN===p.Person?null:p.Person;fill();};bt.appendChild(bb);tr.appendChild(bt);tb.appendChild(tr);
-      if(TOPEN===p.Person){const tr2=el("tr","thr");const td=el("td");td.colSpan=7;td.appendChild(talkList(th));td.appendChild(sayBox(p.Person,cur,p.Ticker,false));tr2.appendChild(td);tb.appendChild(tr2);}});
+      bb.onclick=()=>{TOPEN=TOPEN===p.Person?null:p.Person;TALL=false;fill();};bt.appendChild(bb);tr.appendChild(bt);tb.appendChild(tr);
+      if(TOPEN===p.Person){const tr2=el("tr","thr");const td=el("td");td.colSpan=7;td.appendChild(talkList(TALL?th:th.slice(0,5)));if(th.length>5){const sa=el("button","btn ghost sm",TALL?"Show less":"Show all "+th.length);sa.type="button";sa.style.marginTop="6px";sa.onclick=()=>{TALL=!TALL;fill();};td.appendChild(sa);}td.appendChild(sayBox(p.Person,cur,p.Ticker,false));tr2.appendChild(td);tb.appendChild(tr2);}});
     t.appendChild(tb);tw.appendChild(t);box.appendChild(tw);
     const lead=curPicks.filter(p=>ret(p)!=null).sort((a,b)=>ret(b)-ret(a))[0];
     box.appendChild(el("p","measure",isLive?(QUO_AT?"Prices as of "+QUO_AT.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})+" (Yahoo Finance, may lag a few minutes). ":"")+"Final prices lock at 1:00 PM Central on "+fmt(new Date(Date.parse(cur+"T12:00:00")+7*864e5).toISOString().slice(0,10),{weekday:"long",month:"short",day:"numeric"})+".":
@@ -1273,8 +1280,17 @@ function stocks(){
       const wins=weeks.filter(w=>{const ps=STK.filter(x=>x["Week of"]===w);if(ps.some(x=>x.Status!=="Final"))return false;const top=ps.filter(x=>ret(x)!=null).sort((a,b)=>ret(b)-ret(a))[0];return top&&top.Person===n;}).length;
       return {n,pot,wk,best,wins};}).filter(x=>x.wk).sort((a,b)=>b.pot-a.pot);
     const two=el("div","grid half");two.style.marginTop="6px";const lcol=el("div"),fcol=el("div");two.append(lcol,fcol);box.appendChild(two);
-    const feed=el("div","feed");fcol.appendChild(el("div","grp","Trash talk"));fcol.appendChild(feed);
-    feed.appendChild(sayBox("Everyone",cur,"",true));const fl=talkList(TALK.slice(0,40));fl.style.marginTop="8px";feed.appendChild(fl);
+    fcol.appendChild(el("div","grp","Trash talk"));
+    const feed=document.createElement("details");feed.className="feed";feed.open=TFEED.open;feed.ontoggle=()=>{TFEED.open=feed.open;};
+    const fs=document.createElement("summary");const last=TALK[0];
+    fs.appendChild(el("b",null,TALK.length?TALK.length+" comment"+(TALK.length===1?"":"s"):"Start the trash talk"));
+    if(last)fs.appendChild(el("span","fl","“"+last.Message+"” "+first(last.From)+" · "+ago(last._t)));
+    feed.appendChild(fs);
+    feed.appendChild(sayBox("Everyone",cur,"",true));
+    const fl=talkList(TALK.slice(0,TFEED.n));fl.style.marginTop="8px";feed.appendChild(fl);
+    if(TALK.length>TFEED.n){const mb=el("button","btn ghost sm","Show "+Math.min(10,TALK.length-TFEED.n)+" more");mb.type="button";mb.style.marginTop="8px";mb.onclick=()=>{TFEED.n+=10;fill();};feed.appendChild(mb);}
+    else if(TFEED.n>5){const lb2=el("button","btn ghost sm","Show less");lb2.type="button";lb2.style.marginTop="8px";lb2.onclick=()=>{TFEED.n=5;fill();};feed.appendChild(lb2);}
+    fcol.appendChild(feed);
     if(stats.length){
       lcol.appendChild(el("div","grp","Leaderboard · $100 one-time buy-in, rides every pick"));
       const lw=el("div","stkwrap"),lt=el("table","stk");
