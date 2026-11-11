@@ -1,8 +1,8 @@
 name: Stock picks
 
 # Weekly stock-pick contest on the hub (stock_picks.py, Airtable table Stock Picks):
-# reads the picks from the marketing call notes, locks the 2:30 PM start price and the next week's 1:00 PM end price.
-# Times below are UTC; the script works in Central time, so these only need to run after 1:00 PM / 2:30 PM Central.
+# reads the picks from the marketing call notes, locks the 3:00 PM closing start price and the next week's 1:00 PM end price.
+# Times below are UTC; the script works in Central time, so these only need to run after 1:00 PM / 3:00 PM Central.
 on:
   schedule:
     - cron: "10,40 19-23 * * 3"   # Wednesday afternoons: end prices after 1:00 PM, then the new picks once the call notes land

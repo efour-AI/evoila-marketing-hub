@@ -3,7 +3,7 @@
 At the end of the Wednesday marketing call each person names one stock. This job:
   1. Reads the newest weekly marketing call ("Marketing and Sales Weekly Sync", usually Wednesday) in Call Transcripts that has no picks yet, has Claude pull out
      who picked which ticker, checks each ticker exists, and adds one Stock Picks row per person.
-  2. Locks the start price: the price at 2:30 PM Central on the call day (Week of) (Status -> Live).
+  2. Locks the start price: the closing price (3:00 PM Central) on the call day (Week of) (Status -> Live).
   3. Locks the end price: the price at 1:00 PM Central seven days later, right before the next call
      (Status -> Final).
 The hub shows live prices for Live rows itself (Make scenario "evoila Hub Stocks").
@@ -30,7 +30,7 @@ F = {"pick": "fldFmqm0N7IqXHcIC", "week": "fldp1MSIyrZkgYvzf", "person": "fld06J
      "company": "fldbdD7BEq9T4svBe", "start": "fldRgOxet2uwIunMk", "start_t": "fldnIdGA7fNTj6Wni", "end": "fld4zsHPhepkEPZUw",
      "end_t": "fldlZUxt6R6Fp0MSV", "status": "fldUTYIOWC0mPDZYp", "source": "fldwgqdOGk6YqEk5C", "notes": "fldY9SLaihVJZPdTb"}
 PEOPLE = ["Kevin O'Brien", "Glen Tindal", "Mark Maisano", "Andrew Hald", "Tom MacKay", "Julie Tindal"]
-START_AT, END_AT = (14, 30), (13, 0)          # Central time: start on the call day, end the next Wednesday
+START_AT, END_AT = (15, 0), (13, 0)           # Central time: start at the close on the call day, end 1:00 PM a week later
 UA = {"User-Agent": "Mozilla/5.0 (evoila marketing hub)"}
 
 PROMPT = """Below is the end of the transcript of evoila's weekly marketing call. Near the end, people play a game:

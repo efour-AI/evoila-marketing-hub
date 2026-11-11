@@ -108,7 +108,7 @@ Weekly contest: at the end of the marketing call each person names one stock. Ai
    "Marketing and Sales Weekly Sync" in Call Transcripts that has no picks yet, Claude pulls out who picked what, each
    ticker is checked on Yahoo Finance, and a row is added per person (Status = Waiting for start price, or Check this if
    the ticker isn't found).
-2. Start price = price at 2:30 PM Central on the call day (Status = Live). End price = price at 1:00 PM Central seven
+2. Start price = closing price (3:00 PM Central) on the call day (Status = Live). End price = price at 1:00 PM Central seven
    days later (Status = Final).
 3. The hub reads the rows and live prices through Make scenario "evoila Hub Stocks" (7000206): `a=picks` lists the
    table, `a=quotes&s=AMD,VRT` returns current prices. The page ranks this week live, and the leaderboard rolls a
@@ -116,3 +116,7 @@ Weekly contest: at the end of the marketing call each person names one stock. Ai
 
 To fix a misheard pick: edit Ticker on the row (clear Start price too if it was already locked), then run the workflow
 by hand from the Actions tab. To add a pick by hand: add a row with Week of, Person and Ticker.
+
+Trash talk: Airtable table **Stock Talk** (tblamxVjGmwuqwDnW). The hub posts through the same Make scenario
+(`a=talkpost`); From comes from the sender's personal link, so nobody can post as someone else. Delete a row to take a
+comment down. The $100 is a one-time buy-in that rides every week's pick (compounded).

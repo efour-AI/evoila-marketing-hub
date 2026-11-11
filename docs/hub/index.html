@@ -281,6 +281,22 @@ footer{text-align:center;font-size:12px;color:var(--muted);padding:0 16px 28px}
 .badge{display:inline-block;font-size:11px;font-weight:700;padding:2px 8px;border-radius:999px;background:var(--okbg);color:var(--ok);margin-left:6px;vertical-align:1px}
 .badge.live{background:var(--warnbg);color:var(--warn)}
 @media(max-width:640px){.stk .hide-m,.stk .co{display:none}.stk td,.stk th{padding:8px 5px}.stk .pwho img,.stk .pwho i{display:none}}
+.stk .jab{display:block;font-size:11.5px;font-weight:400;color:var(--muted);font-style:italic;max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;margin-top:2px}
+.stk .pwho{align-items:flex-start}.stk .pwho>span{min-width:0}
+.bub{font:inherit;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:3px 10px;cursor:pointer;white-space:nowrap}
+.bub:hover,.bub.on{border-color:var(--blue);color:var(--blue)}
+.stk tr.thr td{background:var(--soft);padding:10px 12px}
+.talk{list-style:none;margin:0;padding:0}
+.talk li{padding:7px 0;border-top:1px solid var(--line);font-size:13.5px}
+.talk li:first-child{border-top:0}
+.talk .tm{font-size:11.5px;color:var(--muted);margin-bottom:1px}
+.talk .tm b{color:var(--ink);font-weight:600}
+.talk .tx{white-space:pre-wrap;word-break:break-word}
+.say{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
+.say input{flex:1;min-width:160px;font:inherit;font-size:13.5px;padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink)}
+.say select{font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink)}
+.feed{border:1px solid var(--line);border-radius:12px;padding:12px;background:var(--soft)}
+.feed .talk{max-height:420px;overflow:auto}
 </style>
 <script src="/evoila-marketing-hub/track.js"></script>
 </head>
@@ -1186,19 +1202,35 @@ function meetings(){
 }
 
 /* ---------- stock picks ---------- */
-/* One pick each at the end of the Wednesday call. Start = price at 2:30 PM Central that day, end = 1:00 PM Central
-   the next Wednesday (locked by stock_picks.py). Live rows use the current price. $100 rolls over week to week. */
-let STK=null,QUO={},QUO_AT=null;
+/* One pick each at the end of the Wednesday call. Start = closing price (3:00 PM Central) that day, end = 1:00 PM Central
+   the next Wednesday (locked by stock_picks.py). Live rows use the current price. $100 one-time buy-in rides every week's pick. Trash talk lives in Airtable Stock Talk. */
+let STK=null,QUO={},QUO_AT=null,TALK=[],STK_ME="",TOPEN=null;
 function stocks(){
-  const c=section("stocks","Stock picks","Pick at the Wednesday call · 2:30 PM to 1:00 PM next Wednesday, Central");
+  const c=section("stocks","Stock picks","Pick at the Wednesday call · Wednesday close to 1:00 PM next Wednesday, Central");
   const box=el("div");c.appendChild(box);
   const loadQuotes=async()=>{
     const live=[...new Set(STK.filter(p=>p.Status!=="Final"&&p["Start price"]!=null).map(p=>p.Ticker))];
     if(!live.length)return;
     try{const r=await fetch(STOCK_API,{method:"POST",body:new URLSearchParams({t:token,a:"quotes",s:live.join(",")})});const j=await r.json();
-      if(!j.error){QUO={};Object.keys(j).forEach(k=>{const q=j[k]||{};const v=q.fulldayPrice!=null?q.fulldayPrice:(q.close||[]).filter(x=>x!=null).pop();if(v!=null)QUO[k]=v;});QUO_AT=new Date();}}
+      if(!j.error){QUO={};Object.keys(j).forEach(k=>{const q=j[k]||{};const v=(q.close||[]).filter(x=>x!=null).pop();  /* regular session only; after-hours moves don't count */if(v!=null)QUO[k]=v;});QUO_AT=new Date();}}
     catch(e){}
   };
+  const ago=d=>{const m=Math.round((Date.now()-Date.parse(d))/6e4);return m<1?"just now":m<60?m+"m ago":m<1440?Math.round(m/60)+"h ago":fmt(d,{month:"short",day:"numeric"});};
+  const talkList=list=>{const ul=el("ul","talk");if(!list.length){ul.appendChild(el("li","owners","Nothing yet. Somebody start it."));return ul;}
+    list.forEach(m=>{const li=el("li");const tm=el("div","tm");tm.appendChild(el("b",null,first(m.From)));
+      tm.appendChild(document.createTextNode((m.To&&m.To!=="Everyone"?" → "+first(m.To):"")+(m.Ticker?" · "+m.Ticker:"")+" · "+ago(m._t)));
+      li.append(tm,el("div","tx",m.Message||""));ul.appendChild(li);});return ul;};
+  const sayBox=(to,week,ticker,withPicker)=>{const f=el("form","say");let sel=null;
+    if(withPicker){sel=el("select");["Everyone"].concat([...new Set(STK.map(p=>p.Person))]).filter(n=>n!==STK_ME).forEach(n=>{const o=el("option",null,n==="Everyone"?"Everyone":first(n));o.value=n;sel.appendChild(o);});f.appendChild(sel);}
+    const inp=el("input");inp.type="text";inp.maxLength=500;inp.placeholder=to==="Everyone"||withPicker?"Talk your trash…":(to===STK_ME?"Defend your pick…":"Say something to "+first(to)+"…");
+    const b=el("button","btn sm","Send");b.type="submit";f.append(inp,b);
+    f.onsubmit=async e=>{e.preventDefault();const msg=inp.value.trim();if(!msg)return inp.focus();const dest=sel?sel.value:to;
+      const tk=sel?((STK.find(p=>p.Person===dest&&p["Week of"]===week)||{}).Ticker||""):ticker;
+      b.disabled=true;b.textContent="Sending…";
+      try{const r=await fetch(STOCK_API,{method:"POST",body:new URLSearchParams({t:token,a:"talkpost",to:dest,msg,week,ticker:tk})});const j=await r.json();if(!j.ok)throw 0;
+        TALK.unshift({From:j.from||STK_ME,To:dest,Message:msg,"Week of":week,Ticker:tk,_t:new Date().toISOString()});track("stock talk",dest);fill();}
+      catch(e){b.disabled=false;b.textContent="Send";flash("Couldn't post that. Try again.","err",true);}};
+    return f;};
   const fill=()=>{box.innerHTML="";
     if(STK===null){box.appendChild(el("div","empty","Loading this week's picks…"));return;}
     if(STK==="err"){box.appendChild(el("div","empty","Couldn't load the picks just now. Refresh in a minute."));return;}
@@ -1208,7 +1240,8 @@ function stocks(){
     const pct=r=>r==null?"–":(r>=0?"+":"")+(r*100).toFixed(2)+"%";
     const usd=v=>v==null?"–":"$"+Number(v).toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2});
     const cls=r=>r==null?"":r>=0?"up":"dn";
-    const who=n=>{const d=el("span","pwho");if(PHOTOS[n]){const im=el("img");im.src=BASE+PHOTOS[n];im.alt="";d.appendChild(im);}else d.appendChild(el("i",null,n.charAt(0)));d.appendChild(document.createTextNode(first(n)));return d;};
+    const who=(n,jab)=>{const d=el("span","pwho");if(PHOTOS[n]){const im=el("img");im.src=BASE+PHOTOS[n];im.alt="";d.appendChild(im);}else d.appendChild(el("i",null,n.charAt(0)));
+      const w=el("span");w.appendChild(document.createTextNode(first(n)));if(jab)w.appendChild(el("span","jab","“"+jab.Message+"” "+first(jab.From)));d.appendChild(w);return d;};
     const weeks=[...new Set(STK.map(p=>p["Week of"]))].sort();
     const cur=weeks[weeks.length-1],curPicks=STK.filter(p=>p["Week of"]===cur);
     const isLive=curPicks.some(p=>p.Status!=="Final");
@@ -1218,13 +1251,17 @@ function stocks(){
     if(isLive){const rb=el("button","btn ghost sm","Refresh prices");rb.type="button";rb.onclick=async()=>{rb.disabled=true;await loadQuotes();fill();};hd.appendChild(rb);}
     box.appendChild(hd);
     const tw=el("div","stkwrap"),t=el("table","stk");
-    t.innerHTML="<thead><tr><th></th><th>Who</th><th>Pick</th><th class='r hide-m'>Start</th><th class='r'>"+(isLive?"Now":"End")+"</th><th class='r'>Change</th></tr></thead>";
-    const tb=el("tbody");
+    t.innerHTML="<thead><tr><th></th><th>Who</th><th>Pick</th><th class='r hide-m'>Start</th><th class='r'>"+(isLive?"Now":"End")+"</th><th class='r'>Change</th><th class='r'></th></tr></thead>";
+    const tb=el("tbody");const aimed=n=>TALK.filter(m=>m.To===n&&m["Week of"]===cur);
     curPicks.slice().sort((a,b)=>(ret(b)??-9)-(ret(a)??-9)).forEach((p,i)=>{const r=ret(p);const tr=el("tr");if(i===0&&r!=null)tr.className="lead";
-      tr.appendChild(el("td","rank",r==null?"":String(i+1)));const w=el("td");w.appendChild(who(p.Person));tr.appendChild(w);
+      const th=aimed(p.Person);
+      tr.appendChild(el("td","rank",r==null?"":String(i+1)));const w=el("td");w.appendChild(who(p.Person,th[0]));tr.appendChild(w);
       const k=el("td");k.appendChild(el("span","tk",p.Ticker));k.appendChild(el("span","co",p.Company||""));tr.appendChild(k);
-      tr.appendChild(el("td","r hide-m",p["Start price"]!=null?usd(p["Start price"]):"locks 2:30 PM"));
-      tr.appendChild(el("td","r",usd(now(p))));tr.appendChild(el("td","r "+cls(r),pct(r)));tb.appendChild(tr);});
+      tr.appendChild(el("td","r hide-m",p["Start price"]!=null?usd(p["Start price"]):"locks at close"));
+      tr.appendChild(el("td","r",usd(now(p))));tr.appendChild(el("td","r "+cls(r),pct(r)));
+      const bt=el("td","r");const bb=el("button","bub"+(TOPEN===p.Person?" on":""),"💬 "+th.length);bb.type="button";bb.title=p.Person===STK_ME?"What they're saying about your pick":"Talk to "+first(p.Person);
+      bb.onclick=()=>{TOPEN=TOPEN===p.Person?null:p.Person;fill();};bt.appendChild(bb);tr.appendChild(bt);tb.appendChild(tr);
+      if(TOPEN===p.Person){const tr2=el("tr","thr");const td=el("td");td.colSpan=7;td.appendChild(talkList(th));td.appendChild(sayBox(p.Person,cur,p.Ticker,false));tr2.appendChild(td);tb.appendChild(tr2);}});
     t.appendChild(tb);tw.appendChild(t);box.appendChild(tw);
     const lead=curPicks.filter(p=>ret(p)!=null).sort((a,b)=>ret(b)-ret(a))[0];
     box.appendChild(el("p","measure",isLive?(QUO_AT?"Prices as of "+QUO_AT.toLocaleTimeString([],{hour:"numeric",minute:"2-digit"})+" (Yahoo Finance, may lag a few minutes). ":"")+"Final prices lock at 1:00 PM Central on "+fmt(new Date(Date.parse(cur+"T12:00:00")+7*864e5).toISOString().slice(0,10),{weekday:"long",month:"short",day:"numeric"})+".":
@@ -1235,8 +1272,11 @@ function stocks(){
       weeks.forEach(w=>{const p=STK.find(x=>x.Person===n&&x["Week of"]===w);const r=p?ret(p):null;if(r==null)return;pot*=1+r;wk++;if(!best||r>best.r)best={r,tk:p.Ticker};});
       const wins=weeks.filter(w=>{const ps=STK.filter(x=>x["Week of"]===w);if(ps.some(x=>x.Status!=="Final"))return false;const top=ps.filter(x=>ret(x)!=null).sort((a,b)=>ret(b)-ret(a))[0];return top&&top.Person===n;}).length;
       return {n,pot,wk,best,wins};}).filter(x=>x.wk).sort((a,b)=>b.pot-a.pot);
+    const two=el("div","grid half");two.style.marginTop="6px";const lcol=el("div"),fcol=el("div");two.append(lcol,fcol);box.appendChild(two);
+    const feed=el("div","feed");fcol.appendChild(el("div","grp","Trash talk"));fcol.appendChild(feed);
+    feed.appendChild(sayBox("Everyone",cur,"",true));const fl=talkList(TALK.slice(0,40));fl.style.marginTop="8px";feed.appendChild(fl);
     if(stats.length){
-      box.appendChild(el("div","grp","Leaderboard · $100 each, rolled into every pick"));
+      lcol.appendChild(el("div","grp","Leaderboard · $100 one-time buy-in, rides every pick"));
       const lw=el("div","stkwrap"),lt=el("table","stk");
       lt.innerHTML="<thead><tr><th></th><th>Who</th><th class='r'>$100 is now</th><th class='r'>Total</th><th class='r hide-m'>Weeks won</th><th class='r hide-m'>Best pick</th></tr></thead>";
       const lb=el("tbody");
@@ -1245,8 +1285,8 @@ function stocks(){
         tr.appendChild(el("td","r "+cls(r),usd(x.pot)));tr.appendChild(el("td","r "+cls(r),pct(r)));
         tr.appendChild(el("td","r hide-m",String(x.wins)+" of "+weeks.filter(w=>!STK.some(p=>p["Week of"]===w&&p.Status!=="Final")).length));
         tr.appendChild(el("td","r hide-m",x.best?x.best.tk+" "+pct(x.best.r):"–"));lb.appendChild(tr);});
-      lt.appendChild(lb);lw.appendChild(lt);box.appendChild(lw);
-      if(isLive)box.appendChild(el("p","measure","Includes this week at live prices."));
+      lt.appendChild(lb);lw.appendChild(lt);lcol.appendChild(lw);
+      if(isLive)lcol.appendChild(el("p","measure","Includes this week at live prices."));
     }
     /* past weeks */
     const past=weeks.slice(0,-1).reverse();
@@ -1259,7 +1299,7 @@ function stocks(){
   fill();
   const go=async()=>{try{let recs=[],offset="",n=0;
       do{const r=await fetch(STOCK_API,{method:"POST",body:new URLSearchParams({t:token,a:"picks",offset})});if(!r.ok)throw new Error(r.status);const j=await r.json();
-        (j.records||[]).forEach(x=>recs.push(x.fields));offset=j.offset||"";n++;}while(offset&&n<10);
+        (j.records||[]).forEach(x=>recs.push(x.fields));if(n===0){STK_ME=j.me||"";TALK=(j.talk||[]).map(x=>Object.assign({_t:x.createdTime},x.fields)).sort((a,b)=>b._t.localeCompare(a._t));}offset=j.offset||"";n++;}while(offset&&n<10);
       STK=recs.filter(p=>p.Ticker&&p.Person&&p["Week of"]);await loadQuotes();}
     catch(e){STK="err";}
     fill();};
