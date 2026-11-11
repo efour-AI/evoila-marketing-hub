@@ -118,6 +118,7 @@ pre.notes{white-space:pre-wrap;font:inherit;font-size:13px;background:var(--soft
 .loading{color:var(--muted);padding:40px 0;text-align:center}
 .hidden{display:none!important}
 </style>
+<script src="/evoila-marketing-hub/track.js"></script>
 </head>
 <body>
 <header><div class="wrap">
@@ -248,6 +249,7 @@ function draw(){
   if(idx>=items.length)idx=items.length-1;
   if(doneIds.has(items[idx].id)){const n=items.findIndex((x,i)=>i>idx&&!doneIds.has(x.id));idx=n>=0?n:items.findIndex(x=>!doneIds.has(x.id));}
   drawStrip(items);
+  if(window.hubTrack&&!admin)hubTrack.once("Post review","Viewed: "+window.hubLabel(items[idx].id));
   const it=items[idx];
   const lay=el("div","layout");lay.append(preview(it),panel(it));v.appendChild(lay);
   $("#nav").classList.remove("hidden");
@@ -553,7 +555,8 @@ function corporateActions(p,it){
 $("#prev").onclick=()=>{if(idx>0){idx--;flash("");draw();}};
 $("#next").onclick=()=>{if(idx<queues[tab].items.length-1){idx++;flash("");draw();}};
 document.addEventListener("keydown",e=>{if(/TEXTAREA|INPUT/.test(document.activeElement.tagName))return;if(e.key==="ArrowRight")$("#next").click();if(e.key==="ArrowLeft")$("#prev").click();});
-if(!token)fail(new Error("auth"));else{loadAll();try{fetch(API,{method:"POST",keepalive:true,body:new URLSearchParams({t:token,dev:DEV,a:"track",type:"Other",item:"Review page"})});}catch(e){}}
+window.hubLabel=id=>{for(const k in queues){const x=queues[k].items.find(i=>i.id===id);if(x)return (x.kind==="article"?"Article: ":"Post: ")+title(x);}return "";};
+if(!token)fail(new Error("auth"));else loadAll();
 </script>
 </body>
 </html>

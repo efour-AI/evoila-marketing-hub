@@ -147,6 +147,14 @@ label.l{display:block;font-size:12.5px;font-weight:600;margin:8px 0 3px}
 .people td{padding:7px 6px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
 .people tr:last-child td{border-bottom:0}
 .bar{height:8px;border-radius:4px;background:linear-gradient(90deg,var(--green),var(--blue));min-width:2px}
+.usx td{vertical-align:top}.usx td b{font-weight:600}
+.usx tr.u-row{cursor:pointer}.usx tr.u-row:hover td{background:var(--soft)}.usx tr.u-row td:first-child b::before{content:"▸ ";color:var(--muted)}.usx tr.u-row.open td:first-child b::before{content:"▾ "}
+.usx .u-sub{font-size:11.5px;color:var(--muted);display:block;margin-top:1px;line-height:1.35}
+.u-tl{margin:4px 0 10px 14px;border-left:2px solid var(--line);padding-left:12px}
+.u-tl .u-ss{font-size:12px;font-weight:700;color:var(--muted);margin:10px 0 4px}
+.u-ev{display:flex;gap:10px;font-size:13px;padding:3px 0}.u-ev .u-tm{color:var(--muted);flex:none;min-width:62px;font-variant-numeric:tabular-nums}
+.u-ev .u-ty{flex:none;min-width:120px;font-weight:600}.u-ev .u-it{color:var(--ink);word-break:break-word}
+.u-feed .u-ev{border-top:1px solid var(--line);padding:5px 0}.u-feed .u-ev .u-tm{min-width:118px}.u-feed .u-ev .u-who{flex:none;min-width:56px;font-weight:600}.u-feed .u-ev .u-ty{color:var(--muted);font-weight:400}
 .feed{list-style:none;margin:0;padding:0}
 .feed li{display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:13.5px;align-items:baseline}
 .feed li:first-child{border-top:0}
@@ -249,6 +257,7 @@ dialog h3{margin:0 0 6px;font-size:18px}
 .askout .intl{font-size:12px;font-weight:600;color:var(--bad);margin-top:4px}
 footer{text-align:center;font-size:12px;color:var(--muted);padding:0 16px 28px}
 </style>
+<script src="/evoila-marketing-hub/track.js"></script>
 </head>
 <body>
 <header><div class="wrap">
@@ -301,6 +310,7 @@ footer{text-align:center;font-size:12px;color:var(--muted);padding:0 16px 28px}
 const API="https://hook.us2.make.com/o28rqytj8ifgm1o2tckavp2194d8jbqt";
 const ASK_API="https://hook.us2.make.com/4ffhqfa9sd2q1wpo39eqqycmxph9o3g1";
 const ACT="https://hook.us2.make.com/91mst8q1pr5j2smjck26k4a23tlrcrn8";
+const USAGE_API="https://hook.us2.make.com/rriq5jx9prumtlnma8kqcq8yrxs85kp5";   /* Make "evoila Hub Usage" (admins only, paged) */
 const VIEW_API="https://hook.us2.make.com/58mhuld1g0oyaqansfn8k64655b7w6fy";   /* Make "evoila Hub Library Viewer" */
 const PHOTOS={"Glen Tindal":"img/glen-tindal.jpg","Mark Maisano":"img/mark-maisano.jpg","Andrew Hald":"img/andrew-hald.jpg","Tom MacKay":"img/tom-mackay.jpg"};
 const BASE=location.pathname.replace(/index\.html$/,"").replace(/\/hub\/?$/,"/").replace(/([^\/])$/,"$1/");
@@ -324,7 +334,7 @@ function el(tag,cls,text){const e=document.createElement(tag);if(cls)e.className
 function flash(text,kind,stay){const d=$("#flash");d.innerHTML="";if(!text)return;d.appendChild(el("div","msg "+(kind||"ok"),text));if(!stay)window.scrollTo({top:0,behavior:"smooth"});}
 /* Re-render without losing your place: reopen the same initiatives and keep the scroll position. */
 async function refreshInPlace(){const y=window.scrollY;const open=[...document.querySelectorAll("details[data-key][open]")].map(d=>d.dataset.key);
-  await refresh();open.forEach(k=>{const d=document.querySelector('details[data-key="'+k+'"]');if(d)d.open=true;});window.scrollTo({top:y,behavior:"instant"});}
+  await refresh(true);open.forEach(k=>{const d=document.querySelector('details[data-key="'+k+'"]');if(d)d.open=true;});window.scrollTo({top:y,behavior:"instant"});}
 function fmt(d,opt){if(!d)return"";const x=new Date(String(d).length===10?d+"T12:00:00":d);return x.toLocaleDateString(undefined,opt||{month:"short",day:"numeric"});}
 function days(d){if(!d)return null;const x=new Date(String(d).length===10?d+"T12:00:00":d);return Math.round((x-Date.now())/864e5);}
 function first(n){return String(n||"").split(" ")[0];}
@@ -342,8 +352,8 @@ function track(type,item){try{fetch(API,{method:"POST",keepalive:true,body:new U
 function fileExt(name){const m=String(name||"").match(/\.([a-z0-9]+)$/i);return m?m[1].toUpperCase():"";}
 
 let D=null;
-async function refresh(){
-  try{D=await call({a:"hub",page:"Hub"});render();}
+async function refresh(again){
+  try{D=await call({a:"hub",page:again?"Hub (refresh)":"Hub"});render();}
   catch(e){
     if(e.message==="auth"){store("evoila_hub");$("#who").textContent="Not signed in";$("#app").innerHTML="";flash("This link isn't recognized. Use the personal link Kevin sent you.","err");return;}
     $("#app").innerHTML="";flash("Couldn't load the hub just now. Refresh in a minute; if it keeps happening, tell Kevin.","err");
@@ -981,7 +991,7 @@ function requests(me,admin){
       const box=el("div","edit");box.append(sel,ta,sv);d.appendChild(box);l.appendChild(d);
       sv.onclick=async()=>{if(sel.value===(r.Status||"New")&&!ta.value.trim()){flash("Change the status or write a reply first.","err");return;}
         sv.disabled=true;sv.textContent="Saving…";
-        try{await call({a:"mreq",id:r.id,status:sel.value,reply:ta.value.trim()});flash("Saved.");await refresh();}
+        try{await call({a:"mreq",id:r.id,status:sel.value,reply:ta.value.trim()});flash("Saved.");await refresh(true);}
         catch(e){flash("That didn't save. Try again in a minute.","err");sv.disabled=false;sv.textContent="Save";}};
     }
     const st=r.Status||"New";const p=pill(st);p.className="pill"+({"In progress":" risk","Done":" on","Not doing":""}[st]||" done");
@@ -990,32 +1000,108 @@ function requests(me,admin){
 }
 
 /* ---------- usage (admins) ---------- */
+/* Every touchpoint from the Hub Activity table. Loads its own data (paged) so it is not capped at 100 rows. */
+const USAGE={days:30,rows:null,open:{},who:"All",type:"All"};
+function normAct(a){
+  let type=a.Type||"Other",item=a.Item||"";
+  if(type==="Other"&&item==="Review page"){type="Page view";item="Post review";}
+  else if(type==="Other"&&item==="Open post review"){type="Post review";item="Opened from the hub";}
+  else if(type==="Visit"&&/refresh/i.test(item))type="Refresh";
+  return {id:a.id,p:a.Person||"",type,item,when:a.When||"",dev:a.Device||""};
+}
+async function loadUsage(){
+  const rows=[];let offset="",n=0,ok=true;
+  try{do{const r=await fetch(USAGE_API,{method:"POST",body:new URLSearchParams({t:token,a:"usage",days:String(USAGE.days),offset})});if(!r.ok)throw new Error(r.status);const j=await r.json();(j.records||[]).forEach(r=>rows.push(Object.assign({id:r.id},r.fields)));offset=j.offset||"";n++;}while(offset&&n<30);}
+  catch(e){ok=false;}
+  if(!ok){(D.activity||[]).forEach(a=>rows.push(Object.assign({id:a.id},a.fields)));USAGE.partial=true;}else USAGE.partial=false;
+  USAGE.rows=rows.map(normAct).filter(r=>r.when).sort((x,y)=>x.when.localeCompare(y.when));
+}
+function sessionize(evs){const out=[];let cur=null;
+  evs.filter(e=>e.type!=="Refresh").forEach(e=>{const t=Date.parse(e.when);if(!cur||t-cur.end>30*60e3){cur={start:t,end:t,evs:[],dev:e.dev};out.push(cur);}cur.end=t;cur.evs.push(e);});
+  return out;}
+function dur(s){s=Math.round(s);if(s<60)return s+"s";const m=Math.round(s/60);return m<60?m+" min":Math.floor(m/60)+"h "+(m%60)+"m";}
+function tm(d){return new Date(d).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});}
 function usage(){
-  const c=section("usage","Hub usage","Last 30 days · admins only · Kevin's own testing not counted");
+  const c=section("usage","Hub usage","Admins only · Kevin's own testing not counted");
+  const top=el("div","chips");
+  [7,30,90].forEach(d=>{const b=el("button","chip"+(USAGE.days===d?" on":""),"Last "+d+" days");b.type="button";b.onclick=async()=>{USAGE.days=d;USAGE.rows=null;paint();};top.appendChild(b);});
+  c.appendChild(top);const body=el("div");c.appendChild(body);
+  async function paint(){
+    [...top.children].forEach((b,i)=>b.classList.toggle("on",[7,30,90][i]===USAGE.days));
+    if(!USAGE.rows){body.innerHTML="";body.appendChild(el("div","empty","Loading every touchpoint…"));await loadUsage();}
+    drawUsage(body);
+  }
+  paint();return c;
+}
+function drawUsage(body){
+  body.innerHTML="";
   const TEAM=PEOPLE.filter(p=>p!=="Kevin O'Brien");
-  const act=D.activity.map(a=>Object.assign({id:a.id},a.fields));
-  const t=el("table","people");const hr=el("tr");["","Visits","Last visit","Files opened","Decks","Bar"].forEach((x,i)=>hr.appendChild(el("th",null,i===5?"":x)));t.appendChild(hr);
-  const max=Math.max(1,...TEAM.map(p=>act.filter(a=>a.Person===p&&a.Type==="Visit").length));
-  TEAM.forEach(p=>{const mine=act.filter(a=>a.Person===p);const v=mine.filter(a=>a.Type==="Visit");
-    const last=mine.map(a=>a.When).sort().pop();
-    const tr=el("tr");tr.appendChild(el("td",null,first(p)));tr.appendChild(el("td",null,String(v.length)));
-    tr.appendChild(el("td",null,last?fmt(last,{month:"short",day:"numeric"}):"Not yet"));
-    tr.appendChild(el("td",null,String(mine.filter(a=>a.Type==="Open resource").length)));
-    tr.appendChild(el("td",null,String(mine.filter(a=>a.Type==="Request deck"||a.Type==="Custom deck"||a.Type==="Convert deck"||a.Type==="Download deck").length)));
-    const td=el("td");td.style.width="30%";const b=el("div","bar");b.style.width=(100*v.length/max)+"%";td.appendChild(b);tr.appendChild(td);t.appendChild(tr);});
-  c.appendChild(t);
-  const opens={};act.filter(a=>a.Type==="Open resource").forEach(a=>{opens[a.Item]=(opens[a.Item]||0)+1;});
-  const top=Object.entries(opens).sort((a,b)=>b[1]-a[1]).slice(0,5);
-  c.appendChild(el("div","grp","Most opened files"));
-  if(!top.length)c.appendChild(el("div","empty","No files opened yet."));
-  else{const ul=el("ul","list");top.forEach(([k,v])=>{const li=el("li");li.append(el("div","l",k),el("div","r",v+" open"+(v>1?"s":"")));ul.appendChild(li);});c.appendChild(ul);}
-  const qs=act.filter(a=>a.Type==="Ask the hub").sort((x,y)=>String(y.When).localeCompare(String(x.When)));
-  c.appendChild(el("div","grp","Questions asked in Ask the hub ("+qs.length+")"));
-  if(!qs.length)c.appendChild(el("div","empty","No questions yet."));
-  else{const ul=el("ul","list");qs.slice(0,25).forEach(a=>{const li=el("li");const l=el("div","l");const q=el("a",null,a.Item||"");q.href=BASE+"answer/?id="+a.id;q.style.fontWeight="600";l.appendChild(q);li.append(l,el("div","r",first(a.Person)+" · "+fmt(a.When,{month:"short",day:"numeric"})));ul.appendChild(li);});c.appendChild(ul);}
-  const ph=act.filter(a=>a.Type==="Visit"&&a.Device==="phone").length,vis=act.filter(a=>a.Type==="Visit").length;
-  if(vis)c.appendChild(el("p","measure",Math.round(100*ph/vis)+"% of visits from a phone."));
-  return c;
+  const cut=Date.now()-USAGE.days*864e5,R=USAGE.rows.filter(r=>Date.parse(r.when)>=cut&&TEAM.includes(r.p));
+  if(USAGE.partial)body.appendChild(el("p","measure","Showing the most recent 100 events only. The full usage feed isn't switched on yet."));
+  const is=(r,t,re)=>r.type===t&&(!re||re.test(r.item));
+  const count=(m,f)=>m.filter(f).length;
+  const t=el("table","people usx");const hr=el("tr");
+  ["","Sessions","Last active","Time in hub","Posts","Decks","Files","Asked",""].forEach(x=>hr.appendChild(el("th",null,x)));t.appendChild(hr);
+  const stats=TEAM.map(p=>{const m=R.filter(r=>r.p===p),ss=sessionize(m);return {p,m,ss};});
+  const max=Math.max(1,...stats.map(s=>s.ss.length));
+  stats.forEach(({p,m,ss})=>{
+    const tr=el("tr","u-row"+(USAGE.open[p]?" open":""));
+    const last=m[m.length-1];
+    const days=new Set(m.map(r=>r.when.slice(0,10))).size;
+    const secs=m.filter(r=>r.type==="Time on page").reduce((a,r)=>a+(+((r.item.match(/(\d+)s$/)||[])[1]||0)),0);
+    const spanS=ss.reduce((a,s)=>a+(s.end-s.start)/1000,0);
+    const cell=(main,sub)=>{const td=el("td");td.appendChild(el("b",null,main));if(sub)td.appendChild(el("span","u-sub",sub));return td;};
+    tr.appendChild(cell(first(p)));
+    tr.appendChild(cell(String(ss.length),ss.length?days+" day"+(days>1?"s":"")+" · "+count(ss,s=>s.dev==="phone")+" on phone":""));
+    tr.appendChild(last?cell(fmt(last.when,{month:"short",day:"numeric"})+" "+tm(last.when),(last.type==="Visit"?"Opened the hub":last.type+(last.item?": "+last.item:"")).slice(0,60)):cell("Not yet"));
+    tr.appendChild(cell(secs?dur(secs):(spanS?"~"+dur(spanS):"–"),secs?"measured":(spanS?"first to last click":"")));
+    const pv=count(m,r=>is(r,"Post review",/^Viewed/)||is(r,"Page view",/^Post review/)),pa=count(m,r=>is(r,"Post review",/^Approved|^Posted now/)),pb=count(m,r=>is(r,"Post review",/^Sent back|^Held|^Declined/));
+    tr.appendChild(cell(String(pa)+" approved",pv+" review visits"+(pb?" · "+pb+" sent back/held":"")));
+    const dq=count(m,r=>["Request deck","Custom deck","Convert deck"].includes(r.type)&&!/^Opened|^Walking deck$/.test(r.item)),dr=count(m,r=>r.type==="Deck review"&&/Submitted|rewrite|rebuild/i.test(r.item)),dd=count(m,r=>r.type==="Download deck"||is(r,"Deck review",/Download/)||is(r,"Preview deck"));
+    tr.appendChild(cell(String(dq+dd+dr),dq+" requested · "+dd+" opened/downloaded · "+dr+" review edits"));
+    const fo=count(m,r=>r.type==="Open resource"),fp=count(m,r=>r.type==="Preview resource"),fd=count(m,r=>r.type==="Download");
+    tr.appendChild(cell(String(fo+fp+fd),fo+" opened · "+fp+" previewed · "+fd+" downloads"));
+    tr.appendChild(cell(String(count(m,r=>r.type==="Ask the hub"||r.type==="Ask marketing"))));
+    const td=el("td");td.style.width="16%";const b=el("div","bar");b.style.width=(100*ss.length/max)+"%";td.appendChild(b);tr.appendChild(td);
+    tr.onclick=()=>{USAGE.open[p]=!USAGE.open[p];drawUsage(body);};
+    t.appendChild(tr);
+    if(USAGE.open[p]){const xr=el("tr"),xd=el("td");xd.colSpan=9;const tl=el("div","u-tl");
+      if(!ss.length)tl.appendChild(el("div","empty","Nothing in this period."));
+      ss.slice().reverse().forEach(s=>{
+        tl.appendChild(el("div","u-ss",new Date(s.start).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})+", "+tm(s.start)+" · "+s.dev+" · "+(s.end>s.start?dur((s.end-s.start)/1000):"single click")+" · "+s.evs.length+" event"+(s.evs.length>1?"s":"")));
+        s.evs.forEach(e=>{const r=el("div","u-ev");r.append(el("span","u-tm",tm(e.when)),el("span","u-ty",e.type==="Visit"?"Hub":e.type),el("span","u-it",e.type==="Visit"?"Opened the hub":e.item));tl.appendChild(r);});
+      });
+      xd.appendChild(tl);xr.appendChild(xd);t.appendChild(xr);}
+  });
+  body.appendChild(t);
+  body.appendChild(el("p","measure","Click a name for every session and click. A session ends after 30 minutes without activity. Time in hub is measured from the day this tracking went live; older sessions show first-to-last click."));
+
+  /* most opened files: opens, previews and downloads together */
+  const opens={};R.filter(r=>["Open resource","Preview resource","Download","Download deck","Preview deck"].includes(r.type)).forEach(r=>{const k=r.item.replace(/^[^:]*: /,"").replace(/ \((PDF|PPTX|DOCX|XLSX)\)$/i,"");opens[k]=(opens[k]||0)+1;});
+  const tops=Object.entries(opens).sort((a,b)=>b[1]-a[1]).slice(0,8);
+  body.appendChild(el("div","grp","Most opened files and decks"));
+  if(!tops.length)body.appendChild(el("div","empty","No files opened yet."));
+  else{const ul=el("ul","list");tops.forEach(([k,v])=>{const li=el("li");li.append(el("div","l",k),el("div","r",v+" time"+(v>1?"s":"")));ul.appendChild(li);});body.appendChild(ul);}
+
+  const qs=R.filter(r=>r.type==="Ask the hub").reverse();
+  body.appendChild(el("div","grp","Questions asked in Ask the hub ("+qs.length+")"));
+  if(!qs.length)body.appendChild(el("div","empty","No questions yet."));
+  else{const ul=el("ul","list");qs.slice(0,25).forEach(a=>{const li=el("li");const l=el("div","l");const q=el("a",null,a.item||"");q.href=BASE+"answer/?id="+a.id;q.style.fontWeight="600";l.appendChild(q);li.append(l,el("div","r",first(a.p)+" · "+fmt(a.when,{month:"short",day:"numeric"})));ul.appendChild(li);});body.appendChild(ul);}
+
+  /* every touchpoint, filterable */
+  body.appendChild(el("div","grp","Every touchpoint"));
+  const types=["All",...new Set(R.filter(r=>r.type!=="Refresh"&&r.type!=="Time on page").map(r=>r.type==="Visit"?"Hub":r.type))].sort((a,b)=>a==="All"?-1:b==="All"?1:a.localeCompare(b));
+  const fr=el("div","row");fr.style.gap="8px";fr.style.marginBottom="8px";
+  const sw=el("select");["All",...TEAM].forEach(p=>{const o=el("option",null,p==="All"?"Everyone":first(p));o.value=p;if(USAGE.who===p)o.selected=true;sw.appendChild(o);});
+  const st=el("select");types.forEach(x=>{const o=el("option",null,x==="All"?"Every kind":x);o.value=x;if(USAGE.type===x)o.selected=true;st.appendChild(o);});
+  sw.style.maxWidth=st.style.maxWidth="200px";sw.onchange=()=>{USAGE.who=sw.value;drawUsage(body);};st.onchange=()=>{USAGE.type=st.value;drawUsage(body);};
+  fr.append(sw,st);body.appendChild(fr);
+  const feed=el("div","u-feed");
+  const F=R.filter(r=>r.type!=="Refresh"&&(USAGE.who==="All"||r.p===USAGE.who)&&(USAGE.type==="All"||(USAGE.type==="Hub"?r.type==="Visit":r.type===USAGE.type))).reverse();
+  if(!F.length)feed.appendChild(el("div","empty","Nothing matches."));
+  F.slice(0,300).forEach(e=>{const r=el("div","u-ev");r.append(el("span","u-tm",fmt(e.when,{month:"short",day:"numeric"})+" "+tm(e.when)),el("span","u-who",first(e.p)),el("span","u-ty",e.type==="Visit"?"Hub":e.type),el("span","u-it",(e.type==="Visit"?"Opened the hub":e.item)+(e.dev==="phone"?" · phone":"")));feed.appendChild(r);});
+  if(F.length>300)feed.appendChild(el("p","measure","Showing the latest 300 of "+F.length+"."));
+  body.appendChild(feed);
 }
 
 /* ---------- meetings ---------- */
@@ -1052,7 +1138,7 @@ $("#askSend").onclick=async()=>{
   const title=$("#askTitle").value.trim();if(!title){$("#askTitle").focus();return;}
   const b=$("#askSend");b.disabled=true;b.textContent="Sending…";
   try{await call({a:"ask",title,kind:$("#askKind").value,details:$("#askDetails").value.trim(),need:$("#askNeed").value});
-    $("#askDlg").close();$("#askForm").reset();flash("Sent. Kevin has it. Open Ask marketing any time to see the status and his reply.");await refresh();}
+    $("#askDlg").close();$("#askForm").reset();flash("Sent. Kevin has it. Open Ask marketing any time to see the status and his reply.");await refresh(true);}
   catch(e){flash("That didn't send. Try again in a minute.","err");}
   finally{b.disabled=false;b.textContent="Send to marketing";}
 };
