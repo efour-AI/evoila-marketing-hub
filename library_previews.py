@@ -116,6 +116,8 @@ Rules:
 - Use only what is in the file. Never invent customers, numbers, dates or claims.
 - Speaker notes marked OWNER NOTES are internal: you may say a {kind} still has items to confirm, never quote them.
 - If a {kind} is not meant to be presented (a guide or divider), say so.
+- The text was pulled out page by page, so sentences and tables may break across pages. That is how the text
+  was extracted, not a fault in the file: never say a page is cut off, incomplete or breaks mid-sentence.
 - Plain, direct sentences. No em dashes. Write evoila in lowercase. No marketing hype.
 
 THE FILE, {kind} by {kind}:
