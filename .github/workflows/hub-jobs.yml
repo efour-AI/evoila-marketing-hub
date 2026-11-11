@@ -5,17 +5,22 @@ name: Hub jobs
 #   index-library  - "Library: refresh the question bar" (no record needed)
 #   revise-copy    - "Author notes: revise the text" (record = post or article row, table = post|article)
 #   make-image     - "Post image: draw it" (record = LinkedIn Posts Personal row; no record = every upcoming post without one)
+#   library-previews - flip-through previews and guides for Resource Library items (also runs after index-library,
+#                    and on any push that changes library_previews.py)
 # or by hand from the Actions tab.
 on:
   repository_dispatch:
-    types: [build-post, index-library, meeting-overviews, voice-cards, revise-copy, make-image]
+    types: [build-post, index-library, meeting-overviews, voice-cards, revise-copy, make-image, library-previews]
+  push:
+    branches: [main]
+    paths: [library_previews.py]
   schedule:
     - cron: "17 12 * * 1"   # Mondays: rebuild the My voice cards
     - cron: "41 11 * * *"   # daily: meeting overviews and the team conversations the question bar reads
   workflow_dispatch:
     inputs:
       mode:
-        description: "build-post, index-library, meeting-overviews, voice-cards, revise-copy or make-image"
+        description: "build-post, index-library, meeting-overviews, voice-cards, revise-copy, make-image or library-previews"
         required: true
         default: index-library
       record_id:
@@ -33,7 +38,7 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     env:
-      MODE: ${{ github.event.action || github.event.inputs.mode || (github.event.schedule == '41 11 * * *' && 'meeting-overviews' || 'voice-cards') }}
+      MODE: ${{ github.event_name == 'push' && 'library-previews' || github.event.action || github.event.inputs.mode || (github.event.schedule == '41 11 * * *' && 'meeting-overviews' || 'voice-cards') }}
       RECORD_ID: ${{ github.event.client_payload.record_id || github.event.inputs.record_id }}
       TABLE: ${{ github.event.client_payload.table || github.event.inputs.table }}
     steps:
@@ -43,6 +48,16 @@ jobs:
         if: env.MODE == 'build-post' || env.MODE == 'make-image' || env.MODE == 'meeting-overviews'
         run: |
           sudo apt-get install -y -qq --no-install-recommends fonts-crosextra-carlito fonts-dejavu-core > /dev/null || (sudo apt-get update -qq && sudo apt-get install -y -qq --no-install-recommends fonts-crosextra-carlito fonts-dejavu-core > /dev/null)
+          fc-cache -f > /dev/null
+
+      - name: LibreOffice for the library previews
+        if: env.MODE == 'index-library' || env.MODE == 'library-previews'
+        timeout-minutes: 7
+        run: |
+          for i in 1 2 3; do sudo timeout 120 apt-get update -qq -o Acquire::Retries=3 && break; sleep 5; done
+          sudo apt-get install -y -qq --no-install-recommends -o Acquire::Retries=3 libreoffice-impress libreoffice-writer poppler-utils fonts-inter fonts-crosextra-carlito > /dev/null
+          mkdir -p ~/.config/fontconfig
+          cp fonts.conf ~/.config/fontconfig/fonts.conf
           fc-cache -f > /dev/null
 
       - uses: actions/setup-python@v5

@@ -15,6 +15,10 @@ MODE=make-image      Draws the image for a LinkedIn post that has copy but no im
                     With RECORD_ID: that post (the hub's "Create image" button). Without: every upcoming post waiting on
                     marketing or the author that still has no image (also run daily after meeting overviews).
 
+MODE=library-previews One JPEG per slide or page (Slide previews), plus a per-page Slide guide and Details when
+                    empty, for every Resource Library row on the hub whose file changed (library_previews.py).
+                    Also runs at the end of every index-library run. The hub's item viewer reads these.
+
 MODE=meeting-overviews  Backfill: writes a short Meeting Overview on Call Transcripts rows from the last
                     60 days that have a transcript and no overview yet. New calls get theirs from the
                     Fireflies scenario in Make.
@@ -147,6 +151,13 @@ def rows(table, formula=None):
 def download(url, path):
     with urllib.request.urlopen(url, timeout=300) as r, open(path, "wb") as fh:
         fh.write(r.read())
+
+
+def upload_attachment(rid, field, path, ctype):
+    with open(path, "rb") as fh:
+        b64 = base64.b64encode(fh.read()).decode()
+    api("POST", f"https://content.airtable.com/v0/{BASE}/{rid}/{field}/uploadAttachment",
+        {"contentType": ctype, "file": b64, "filename": os.path.basename(path)})
 
 
 # ------------------------------------------------------------------ index-library
@@ -724,6 +735,14 @@ if __name__ == "__main__":
     try:
         if MODE == "index-library":
             index_library()
+            try:
+                import library_previews
+                library_previews.run()     # flip-through previews and guides for anything new or changed
+            except Exception as e:
+                print("library previews failed:", type(e).__name__)
+        elif MODE == "library-previews":
+            import library_previews
+            library_previews.run()
         elif MODE == "build-post":
             build_post()
         elif MODE == "meeting-overviews":

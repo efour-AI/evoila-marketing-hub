@@ -156,6 +156,39 @@ label.l{display:block;font-size:12.5px;font-weight:600;margin:8px 0 3px}
 .msg.err{background:var(--badbg);color:var(--bad)}.msg.ok{background:var(--okbg);color:var(--ok)}
 .loading{color:var(--muted);padding:30px 0;text-align:center}
 .hidden{display:none}
+/* item viewer: details plus flip-through before download */
+.rc.click{cursor:pointer}.rc.click .rl b{text-decoration:underline;text-decoration-color:transparent;text-underline-offset:3px}.rc.click:hover .rl b{text-decoration-color:var(--indigo);color:var(--indigo)}
+.rc .fl a.pv{background:var(--indigo);border-color:var(--indigo);color:#fff}
+.list li.click{cursor:pointer}.list li.click:hover .l b{color:var(--indigo)}
+dialog#viewDlg{max-width:1080px;width:calc(100% - 24px);max-height:calc(100vh - 24px)}
+#viewDlg .vw{display:flex;flex-direction:column;max-height:calc(100vh - 24px)}
+#viewDlg .vh{display:flex;align-items:flex-start;gap:12px;padding:16px 18px 10px;border-bottom:1px solid var(--line)}
+#viewDlg .vh .t{flex:1;min-width:0}#viewDlg .vh h3{margin:0;font-size:18px;display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+#viewDlg .vh .m{font-size:12.5px;color:var(--muted);margin-top:3px}
+#viewDlg .x{font:inherit;font-size:22px;line-height:1;border:0;background:none;color:var(--muted);cursor:pointer;padding:2px 6px}
+#viewDlg .vb{overflow:auto;padding:14px 18px;display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:18px}
+@media(max-width:820px){#viewDlg .vb{grid-template-columns:1fr}}
+#viewDlg .stage{position:relative;background:#111;border-radius:10px;overflow:hidden;aspect-ratio:16/9;display:flex;align-items:center;justify-content:center}
+#viewDlg .stage.doc{aspect-ratio:auto;max-height:70vh;background:var(--soft)}
+#viewDlg .stage img{max-width:100%;max-height:100%;display:block}#viewDlg .stage.doc img{max-height:70vh}
+#viewDlg .nav{position:absolute;top:50%;transform:translateY(-50%);border:0;width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,.92);color:var(--violet);font-size:20px;cursor:pointer;box-shadow:0 1px 4px rgba(0,0,0,.25)}
+#viewDlg .nav:disabled{opacity:.3;cursor:default}#viewDlg .nav.p{left:10px}#viewDlg .nav.n{right:10px}
+#viewDlg .cnt{position:absolute;bottom:8px;right:10px;background:rgba(0,0,0,.6);color:#fff;font-size:12px;font-weight:600;border-radius:6px;padding:2px 8px}
+#viewDlg .strip{display:flex;gap:6px;overflow-x:auto;padding:8px 0 2px}
+#viewDlg .strip img{height:52px;border-radius:4px;border:2px solid transparent;cursor:pointer;opacity:.7;flex:none}
+#viewDlg .strip img.on{border-color:var(--indigo);opacity:1}
+#viewDlg .now{background:var(--soft);border-radius:10px;padding:10px 12px;margin-top:10px}
+#viewDlg .now .k{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted)}
+#viewDlg .now b{display:block;font-size:14.5px;margin:2px 0 3px}#viewDlg .now p{margin:0;font-size:13.5px}
+#viewDlg .side h4{margin:0 0 6px;font-size:13px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+#viewDlg .side p{margin:0 0 10px;font-size:13.5px;line-height:1.45}#viewDlg .side p b{font-weight:700}
+#viewDlg .toc{list-style:none;margin:6px 0 0;padding:0;font-size:12.5px;max-height:260px;overflow:auto;border-top:1px solid var(--line)}
+#viewDlg .toc li{display:flex;gap:8px;padding:5px 2px;border-bottom:1px solid var(--line);cursor:pointer}
+#viewDlg .toc li span{color:var(--muted);min-width:20px;text-align:right;font-variant-numeric:tabular-nums}
+#viewDlg .toc li.on{color:var(--indigo);font-weight:600}
+#viewDlg .vf{display:flex;gap:8px;flex-wrap:wrap;align-items:center;justify-content:flex-end;padding:12px 18px;border-top:1px solid var(--line)}
+#viewDlg .vf .hint{flex:1;font-size:12px;color:var(--muted)}
+#viewDlg .wait{color:#fff;font-size:13.5px;padding:20px;text-align:center}#viewDlg .stage.doc .wait{color:var(--muted)}
 dialog{border:0;border-radius:16px;padding:0;max-width:560px;width:calc(100% - 32px);background:var(--card);color:var(--ink)}
 dialog::backdrop{background:rgba(23,16,42,.55)}
 dialog form{padding:18px}
@@ -246,6 +279,13 @@ footer{text-align:center;font-size:12px;color:var(--muted);padding:0 16px 28px}
  <div id="reqList"></div>
 </form></dialog>
 
+<dialog id="viewDlg"><div class="vw">
+ <div class="vh"><div class="t"><h3 id="vTitle"></h3><div class="m" id="vMeta"></div></div><button class="x" type="button" id="vClose" aria-label="Close">&times;</button></div>
+ <div class="vb"><div><div class="stage" id="vStage"></div><div class="strip" id="vStrip"></div><div class="now" id="vNow" hidden><div class="k" id="vNowK"></div><b id="vNowT"></b><p id="vNowA"></p></div></div>
+  <div class="side" id="vSide"></div></div>
+ <div class="vf"><span class="hint" id="vHint">Use the arrow keys to flip through.</span><span id="vFiles" style="display:flex;gap:8px;flex-wrap:wrap"></span></div>
+</div></dialog>
+
 <dialog id="resDlg"><form method="dialog">
  <h3>Add to the library</h3>
  <label class="l" for="rTitle">Name</label><input type="text" id="rTitle" maxlength="120">
@@ -261,6 +301,7 @@ footer{text-align:center;font-size:12px;color:var(--muted);padding:0 16px 28px}
 const API="https://hook.us2.make.com/o28rqytj8ifgm1o2tckavp2194d8jbqt";
 const ASK_API="https://hook.us2.make.com/4ffhqfa9sd2q1wpo39eqqycmxph9o3g1";
 const ACT="https://hook.us2.make.com/91mst8q1pr5j2smjck26k4a23tlrcrn8";
+const VIEW_API="https://hook.us2.make.com/58mhuld1g0oyaqansfn8k64655b7w6fy";   /* Make "evoila Hub Library Viewer" */
 const PHOTOS={"Glen Tindal":"img/glen-tindal.jpg","Mark Maisano":"img/mark-maisano.jpg","Andrew Hald":"img/andrew-hald.jpg","Tom MacKay":"img/tom-mackay.jpg"};
 const BASE=location.pathname.replace(/index\.html$/,"").replace(/\/hub\/?$/,"/").replace(/([^\/])$/,"$1/");
 const ANALYTICS_URL="https://claude.ai/artifact/Gj7nCXY9v9N1YuPkxd5r6w";
@@ -687,12 +728,98 @@ function resCard(r){
   if(info){const p=el("p",null,info);p.title=info;L.appendChild(p);}
   d.appendChild(L);
   const fl=el("div","fl");
+  const canView=(r.File||[]).some(f=>/^(PDF|PPTX|DOCX|PPT|DOC)$/.test(fileExt(f.filename)));
+  if(canView){d.classList.add("click");d.title="Click for details and a page-by-page preview";d.onclick=e=>{if(!e.target.closest("a"))openItem(r);};
+    const pv=el("a","pv","Preview");pv.href="#";pv.onclick=e=>{e.preventDefault();openItem(r);};fl.appendChild(pv);}
   (r.File||[]).slice(0,3).forEach(f=>{const ext=fileExt(f.filename);const v=viewUrl(f,ext);
     const a=el("a",null,ext);a.href=v||f.url;a.target="_blank";a.rel="noopener";a.title=(v?"View ":"Download ")+(f.filename||ext);if(!v)a.setAttribute("download",f.filename||"");a.onclick=()=>track("Open resource",r.Name);fl.appendChild(a);
     if(v){const dl=el("a","dl","\u2193");dl.href=f.url;dl.target="_blank";dl.rel="noopener";dl.setAttribute("download",f.filename||"");dl.title="Download "+(f.filename||ext);dl.onclick=()=>track("Open resource",r.Name);fl.appendChild(dl);}});
   if(r.Link){const a=el("a",null,/drive\.google|docs\.google/.test(r.Link)?"Drive":"Link");a.href=r.Link;a.target="_blank";a.rel="noopener";a.onclick=()=>track("Open resource",r.Name);fl.appendChild(a);}
   d.appendChild(fl);return d;
 }
+
+
+/* ---------- item viewer: details and a flip-through before anyone downloads ---------- */
+const VCACHE={};let V=null;
+async function viewCall(params){
+  const k=JSON.stringify(params);if(VCACHE[k])return VCACHE[k];
+  const r=await fetch(VIEW_API,{method:"POST",body:new URLSearchParams(Object.assign({t:token},params))});
+  const txt=await r.text();let j=null;try{j=JSON.parse(txt)}catch(e){}
+  if(!r.ok||!j||!j.ok)throw new Error("Could not load the preview");
+  VCACHE[k]=j;return j;
+}
+function vFileLinks(list){const w=$("#vFiles");w.innerHTML="";
+  list.forEach(([lab,f,name])=>{if(!f)return;const ext=lab;const v=viewUrl(f,ext);
+    const a=el("a","btn sm","Download "+ext);a.href=f.url;a.target="_blank";a.rel="noopener";a.setAttribute("download",f.filename||"");a.onclick=()=>track("Open resource",name+" ("+ext+")");w.appendChild(a);});}
+function vSideText(details,fallback){const sd=$("#vSide");sd.innerHTML="";
+  const txt=String(details||"").trim();
+  if(txt){sd.appendChild(el("h4",null,"About this"));
+    txt.split(/\n\s*\n/).forEach(par=>{const p=el("p");const m=par.match(/^([A-Z][^:]{2,40}):\s*/);
+      if(m){p.appendChild(el("b",null,m[1]+": "));p.appendChild(document.createTextNode(par.slice(m[0].length)));}else p.textContent=par;sd.appendChild(p);});}
+  else if(fallback){sd.appendChild(el("h4",null,"About this"));sd.appendChild(el("p",null,fallback));}
+  return sd;}
+function vOpen(){const dl=$("#viewDlg");if(!dl.open)dl.showModal();}
+function vShow(i){if(!V||!V.imgs.length)return;V.i=Math.max(0,Math.min(V.imgs.length-1,i));
+  const st=$("#vStage");let img=st.querySelector("img.main");
+  if(!img){st.innerHTML="";img=el("img","main");img.alt="";st.appendChild(img);
+    const p=el("button","nav p","\u2039");p.type="button";p.setAttribute("aria-label","Previous");p.onclick=()=>vShow(V.i-1);
+    const n=el("button","nav n","\u203A");n.type="button";n.setAttribute("aria-label","Next");n.onclick=()=>vShow(V.i+1);
+    st.append(p,n,el("div","cnt"));}
+  img.src=V.imgs[V.i];img.alt=(V.unit+" "+(V.i+1));
+  st.querySelector(".nav.p").disabled=V.i===0;st.querySelector(".nav.n").disabled=V.i===V.imgs.length-1;
+  st.querySelector(".cnt").textContent=(V.i+1)+" / "+V.imgs.length;
+  if(V.imgs[V.i+1]){const pre=new Image();pre.src=V.imgs[V.i+1];}
+  $("#vStrip").querySelectorAll("img").forEach((t,k)=>{t.classList.toggle("on",k===V.i);if(k===V.i)t.scrollIntoView({block:"nearest",inline:"nearest"});});
+  document.querySelectorAll("#viewDlg .toc li").forEach((t,k)=>t.classList.toggle("on",k===V.i));
+  const g=V.guide[V.i]||{};const now=$("#vNow");
+  if(g.title||g.about){now.hidden=false;$("#vNowK").textContent=V.unit+" "+(V.i+1);$("#vNowT").textContent=g.title||"";$("#vNowA").textContent=g.about||"";}else now.hidden=true;
+}
+function vBuild(imgs,thumbs,guide,unit,isDoc){
+  V={imgs,guide:guide||[],unit,i:0};
+  const st=$("#vStage");st.className="stage"+(isDoc?" doc":"");
+  const sp=$("#vStrip");sp.innerHTML="";
+  (thumbs||imgs).forEach((u,k)=>{const t=el("img");t.src=u;t.loading="lazy";t.alt=unit+" "+(k+1);t.onclick=()=>vShow(k);sp.appendChild(t);});
+  if(V.guide.length>1){const sd=$("#vSide");sd.appendChild(el("h4",null,"What is inside"));const ul=el("ul","toc");
+    V.guide.forEach((g,k)=>{const li=el("li");li.append(el("span",null,String(k+1)),document.createTextNode(g.title||(unit+" "+(k+1))));li.onclick=()=>vShow(k);ul.appendChild(li);});sd.appendChild(ul);}
+  vShow(0);
+}
+function vWait(msg,isDoc){const st=$("#vStage");st.className="stage"+(isDoc?" doc":"");st.innerHTML="";st.appendChild(el("div","wait",msg));$("#vStrip").innerHTML="";$("#vNow").hidden=true;V=null;}
+function vHeader(name,tagEl,meta){const h=$("#vTitle");h.innerHTML="";h.appendChild(document.createTextNode(name));if(tagEl)h.appendChild(tagEl);$("#vMeta").textContent=meta||"";}
+
+async function openItem(r){
+  track("Preview resource",r.Name);
+  const sh=r.Sharing||"Internal only";
+  vHeader(r.Name||"Untitled",el("span","tag "+(sh.startsWith("Internal")?"int":sh.includes("customers")?"cust":"part"),sh.startsWith("Internal")?"Internal":sh.includes("customers")?"Customers":"Partners"),
+    [r.Owner,r["Version date"]?"updated "+fmt(r["Version date"],{month:"short",day:"numeric",year:"numeric"}):""].filter(Boolean).join(" · "));
+  const files=(r.File||[]).map(f=>[fileExt(f.filename),f,r.Name]);vFileLinks(files);
+  const isDoc=!(r.File||[]).some(f=>/^PPTX?$/.test(fileExt(f.filename)))&&r.Category!=="Decks";
+  vSideText("",r.Description);vWait("Loading the preview…",isDoc);$("#vHint").textContent="Use the arrow keys to flip through.";vOpen();
+  try{const j=await viewCall({a:"resget",id:r.id});const f=(j.item&&j.item.fields)||{};
+    let guide=[];try{guide=JSON.parse(f["Slide guide"]||"[]")}catch(e){}
+    vSideText(f.Details,r.Description);
+    const prev=f["Slide previews"]||[];
+    if(prev.length){vBuild(prev.map(x=>x.url),prev.map(x=>(x.thumbnails&&x.thumbnails.small&&x.thumbnails.small.url)||x.url),guide,isDoc?"Page":"Slide",isDoc);}
+    else{vWait("The page-by-page preview is still being drawn. Check back in a few minutes.",isDoc);
+      const fi=(r.File||[])[0];if(fi){const v=viewUrl(fi,fileExt(fi.filename));if(v){const a=el("a","btn ghost sm","Open it in the browser");a.href=v;a.target="_blank";a.rel="noopener";$("#vFiles").prepend(a);}}}
+  }catch(e){vWait("The preview could not load. You can still download the file below.",isDoc);}
+}
+async function openDeck(d){
+  const name=(d["Company you are meeting with"]||"Deck #"+d.Request);track("Preview deck",name);
+  vHeader(name,null,[d["Your name"],d["Who is the audience?"],d["Meeting date"]?"meeting "+fmt(d["Meeting date"]):""].filter(Boolean).join(" · "));
+  vFileLinks([["PPTX",(d["Deck PPTX"]||[])[0],name],["PDF",(d["Deck PDF"]||[])[0],name]]);
+  vSideText("Built on the hub for "+name+(d["Who is the audience?"]?" ("+d["Who is the audience?"]+" audience)":"")+(d["Your name"]?", requested by "+d["Your name"]:"")+". Reuse it as a starting point, or request your own walking deck for your meeting.");
+  vWait("Loading the slides…",false);vOpen();
+  try{const j=await viewCall({a:"deckpeek",id:d._id});let tx=[];try{tx=typeof j.text==="string"?JSON.parse(j.text||"[]"):(j.text||[])}catch(e){}
+    if(j.previews&&j.previews.length)vBuild(j.previews,null,tx.map(x=>({title:x.title||"",about:""})),"Slide",false);
+    else vWait("No slide previews for this deck. Download it below.",false);
+  }catch(e){vWait("The preview could not load. You can still download the deck below.",false);}
+}
+document.addEventListener("keydown",e=>{const dl=document.getElementById("viewDlg");if(!dl||!dl.open||!V)return;
+  if(e.key==="ArrowRight"){e.preventDefault();vShow(V.i+1);}else if(e.key==="ArrowLeft"){e.preventDefault();vShow(V.i-1);}});
+document.addEventListener("click",e=>{if(e.target&&e.target.id==="vClose")document.getElementById("viewDlg").close();
+  if(e.target&&e.target.id==="viewDlg")e.target.close();});
+(function(){let x0=null;document.addEventListener("touchstart",e=>{if(e.target.closest&&e.target.closest("#vStage"))x0=e.touches[0].clientX;},{passive:true});
+  document.addEventListener("touchend",e=>{if(x0===null||!V)return;const dx=e.changedTouches[0].clientX-x0;x0=null;if(Math.abs(dx)>40)vShow(V.i+(dx<0?1:-1));},{passive:true});})();
 
 /* ---------- decks ---------- */
 const DECKS_SINCE="2026-11-04T22:00:00Z";   /* decks requested before the new review process are not listed */
@@ -724,6 +851,7 @@ function decks(me,admin){
     else if(files.length&&(d.Status==="Sent"||d.Status==="Final")){files.forEach(([lab,f],ix)=>{const a=el("a",null,lab);a.href=f[0].url;a.target="_blank";a.rel="noopener";a.onclick=()=>track("Download deck",(d["Company you are meeting with"]||"")+" "+lab);if(ix)r.appendChild(document.createTextNode(" · "));r.appendChild(a);});
       if(mine||admin){r.appendChild(document.createTextNode(" · "));const a=el("a",null,"Details");a.href=rv;r.appendChild(a);}}
     else r.textContent=d.Status==="Building"||d.Status==="Ready"?"Building…":(d.Status||"");
+    if(files.length&&(d.Status==="Sent"||d.Status==="Final"||d.Status==="Ready")){li.classList.add("click");li.title="Click to flip through the slides";li.onclick=e=>{if(!e.target.closest("a"))openDeck(d);};}
     li.append(l,r);ul.appendChild(li);});
   c.appendChild(ul);return c;
 }

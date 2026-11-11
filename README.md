@@ -83,3 +83,18 @@ field, JSON in the `onepager/copy.json` format). The Current row is what the hub
 
 To ban another word on the one-pager, add it to `onepager/rules.json`. Layout changes are made in
 `template.html` by hand (check with `python onepager/onepager.py --local onepager/copy.json out/`).
+
+## Library item viewer (docs/index.html, library_previews.py)
+
+Clicking a Resource Library item (or its Preview button) on the hub opens a viewer: Details on the right, the
+file flipped through slide by slide or page by page (arrows, arrow keys, swipe, thumbnails, a clickable
+contents list), a line under each slide saying what it covers, and the download buttons at the bottom.
+Recent decks built on the hub open the same viewer from their Slide previews.
+
+- Data lives on the Resource Library row: Details, Slide guide (JSON: n, title, about), Slide previews,
+  Previews built from. Edit Details and Slide guide by hand in Airtable whenever you like.
+- `library_previews.py` (hub-jobs, mode `library-previews`, also run after every `index-library`) draws the
+  previews for any row whose file changed, and drafts Slide guide and Details with Claude only when they are
+  empty or the page count changed.
+- The viewer loads through Make scenario "evoila Hub Library Viewer" (6998407): `resget` returns one library
+  row (only if Show on hub), `deckpeek` returns a deck's previews and slide titles. Same hub links as the rest.
