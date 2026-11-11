@@ -120,3 +120,6 @@ by hand from the Actions tab. To add a pick by hand: add a row with Week of, Per
 Trash talk: Airtable table **Stock Talk** (tblamxVjGmwuqwDnW). The hub posts through the same Make scenario
 (`a=talkpost`); From comes from the sender's personal link, so nobody can post as someone else. Delete a row to take a
 comment down. The $100 is a one-time buy-in that rides every week's pick (compounded).
+Emails: Airtable automation "Stock talk: tell them someone talked trash" emails the person a comment is aimed at (or, when
+the pick's owner fires back in their own thread, the last person who talked trash to them). The email never shows the
+comment; its link (`#t=<token>&go=stocks&th=<person>`) opens the hub on that thread.

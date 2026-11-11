@@ -377,6 +377,7 @@ let token=null,mode="t";let JUMP=/^[a-z]+$/.test(location.hash.slice(1))?locatio
 const h=new URLSearchParams(location.hash.slice(1));
 if(h.get("k")){token=h.get("k");mode="k";store("evoila_desk_k",token);}
 else if(h.get("t")){token=h.get("t");mode="t";store("evoila_desk_t",token);}
+const GO=h.get("go"),TH0=h.get("th");if(GO&&/^[a-z]+$/.test(GO))JUMP=GO;
 if(token){store("evoila_hub",mode+":"+token);history.replaceState(null,"",location.pathname);}
 else{const s=load("evoila_hub");if(s){mode=s.slice(0,1);token=s.slice(2);}}
 
@@ -1213,7 +1214,7 @@ function meetings(){
 /* ---------- stock picks ---------- */
 /* One pick each at the end of the Wednesday call. Start = closing price (3:00 PM Central) that day, end = 1:00 PM Central
    the next Wednesday (locked by stock_picks.py). Live rows use the current price. $100 one-time buy-in rides every week's pick. Trash talk lives in Airtable Stock Talk. */
-let STK=null,QUO={},QUO_AT=null,TALK=[],STK_ME="",TOPEN=null,TALL=false,TFEED={open:false,n:5};
+let STK=null,QUO={},QUO_AT=null,TALK=[],STK_ME="",TOPEN=TH0||null,TALL=false,TFEED={open:false,n:5};
 function stocks(){
   const c=section("stocks","Stock picks","Pick at the Wednesday call · Wednesday close to 1:00 PM next Wednesday, Central");
   const box=el("div");c.appendChild(box);
