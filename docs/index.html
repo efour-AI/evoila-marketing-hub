@@ -111,12 +111,20 @@ label.l{display:block;font-size:12.5px;font-weight:600;margin:8px 0 3px}
 .chips{display:flex;gap:6px;flex-wrap:wrap;margin:0 0 12px}
 .chip{font:inherit;font-size:12.5px;font-weight:600;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:999px;padding:5px 12px;cursor:pointer}
 .chip.on{background:var(--violet);border-color:var(--violet);color:#fff}
-.res{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:10px}
-.rc{border:1px solid var(--line);border-radius:12px;padding:12px 14px;background:var(--soft);display:flex;flex-direction:column;gap:6px}
-.rc .top2{display:flex;justify-content:space-between;gap:8px;align-items:flex-start}
-.rc b{font-size:14px}
-.rc p{margin:0;font-size:12.5px;color:var(--muted);flex:1}
-.rc .meta{font-size:11.5px;color:var(--muted)}
+.res{border:1px solid var(--line);border-radius:12px;background:var(--card);overflow:hidden}
+.rc{display:flex;align-items:center;gap:14px;padding:9px 14px;border-top:1px solid var(--line)}
+.rc:first-child{border-top:0}
+.rc:hover{background:var(--soft)}
+.rc .rl{flex:1;min-width:0}
+.rc .top2{display:flex;align-items:center;gap:8px;min-width:0}
+.rc b{font-size:13.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rc p{margin:2px 0 0;font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rc .fl{display:flex;gap:6px;flex:none;align-items:center}
+.rc .fl a{display:inline-flex;align-items:center;gap:5px;font-size:12px;font-weight:600;text-decoration:none;color:var(--indigo);border:1px solid var(--line);border-radius:7px;padding:4px 8px;background:var(--card);white-space:nowrap}
+.rc .fl a:hover{border-color:var(--indigo)}
+.rc .fl a.dl{padding:4px 6px;color:var(--muted)}
+@media(max-width:640px){.rc{flex-direction:column;align-items:flex-start;gap:6px}.rc b,.rc p{white-space:normal}}
+.feed a.go{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}.feed a.go:hover{color:var(--indigo);border-bottom-color:var(--indigo)}
 .tag{font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:2px 7px;border-radius:6px;white-space:nowrap}
 .tag.int{background:var(--badbg);color:var(--bad)}.tag.cust{background:var(--okbg);color:var(--ok)}.tag.part{background:var(--donebg);color:var(--done)}
 .ext{font-size:11px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:1px 5px;margin-right:6px}
@@ -400,10 +408,10 @@ function actions(admin,author){
 function whatsNew(){
   const c=section("new","What's new","Last 14 days");
   const since=Date.now()-14*864e5,items=[];
-  D.resources.forEach(r=>{const f=r.fields,t=Date.parse(f.Added||r.createdTime);if(t>=since)items.push([t,"Library",f.Name]);});
-  D.decks.forEach(r=>{const f=r.fields,t=Date.parse(f["Requested at"]||r.createdTime);if(t>=since&&(f.Status==="Sent"||f.Status==="Final"))items.push([t,"Deck",(f["Company you are meeting with"]||"Deck")+" · "+first(f["Your name"])]);});
-  D.posts.forEach(r=>{const f=r.fields,t=Date.parse(f["Published Date"]||"");if(t>=since&&f.Status==="Published")items.push([t,"Posted",first(f["Author / Profile"])+": "+(f["Post Title Preference"]||"LinkedIn post")]);});
-  D.plan.forEach(r=>{const f=r.fields,u=(f["Latest update"]||"").match(/^\[(\d{4}-\d\d-\d\d)\]\s*([^:]+):\s*(.*)/);if(u){const t=Date.parse(u[1]+"T12:00:00");if(t>=since)items.push([t,"Plan",f.Name+": "+u[3].split("\n")[0]]);}});
+  D.resources.forEach(r=>{const f=r.fields,t=Date.parse(f.Added||r.createdTime);if(t>=since){const fi=(f.File||[])[0];const href=fi?(viewUrl(fi,fileExt(fi.filename))||fi.url):(f.Link||"#library");items.push([t,"Library",f.Name,null,href]);}});
+  D.decks.forEach(r=>{const f=r.fields,t=Date.parse(f["Requested at"]||r.createdTime);if(t>=since&&(f.Status==="Sent"||f.Status==="Final")){const fi=(f["Deck PDF"]||f["Deck PPTX"]||[])[0];items.push([t,"Deck",(f["Company you are meeting with"]||"Deck")+" · "+first(f["Your name"]),null,fi?fi.url:BASE+"deckreview/?d="+r.id]);}});
+  D.posts.forEach(r=>{const f=r.fields,t=Date.parse(f["Published Date"]||f["Date Posted"]||"");if(t>=since&&f.Status==="Published")items.push([t,"Posted",first(f["Author / Profile"])+": "+(f["Post Title Preference"]||"LinkedIn post"),null,f["Published URL"]||""]);});
+  D.plan.forEach(r=>{const f=r.fields,u=(f["Latest update"]||"").match(/^\[(\d{4}-\d\d-\d\d)\]\s*([^:]+):\s*(.*)/);if(u){const t=Date.parse(u[1]+"T12:00:00");if(t>=since)items.push([t,"Plan",f.Name+": "+u[3].split("\n")[0],null,"#strategy"]);}});
   D.items.forEach(r=>{const f=r.fields;const ce=closedEntry(f);const es=taskEntries(f);
     es.forEach(e=>{const t=Date.parse(e.date+"T12:00:00");if(t<since||isCloseText(e.text)||(ce&&e.date===ce.date))return;
       items.push([t,"Task",(e.who?first(e.who)+" on ":"")+"“"+f.Task+"”: "+e.text.split("\n")[0].replace(/^Sync note:\s*/,"Sync note: "),r.id]);});
@@ -412,7 +420,11 @@ function whatsNew(){
   items.sort((a,b)=>b[0]-a[0]);
   if(!items.length){c.appendChild(el("div","empty","Quiet fortnight. New decks, posts, task updates and library files show up here."));return c;}
   const ul=el("ul","feed");
-  items.slice(0,10).forEach(([t,w,txt,id])=>{const li=el("li");li.append(el("span","d",fmt(new Date(t).toISOString())),el("span","w",w),el("span",null,txt));
+  items.slice(0,10).forEach(([t,w,txt,id,href])=>{const li=el("li");
+    let body=el("span",null,txt);
+    if(href&&!id){body=el("a","go",txt);body.href=href;if(href[0]==="#"){body.onclick=e=>{e.preventDefault();const x=document.querySelector(href);if(x)x.scrollIntoView({behavior:"smooth",block:"start"});};}
+      else{body.target="_blank";body.rel="noopener";body.onclick=()=>track("What's new",w+": "+txt);}body.title="Open";}
+    li.append(el("span","d",fmt(new Date(t).toISOString())),el("span","w",w),body);
     if(id){li.style.cursor="pointer";li.title="Open this task";li.onclick=()=>jumpToTask(id);}ul.appendChild(li);});
   c.appendChild(ul);return c;
 }
@@ -667,18 +679,19 @@ function viewUrl(f,ext){
   return null;
 }
 function resCard(r){
-  const d=el("div","rc");
-  const t=el("div","top2");t.appendChild(el("b",null,r.Name||"Untitled"));
-  const sh=r.Sharing||"Internal only";const tg=el("span","tag "+(sh.startsWith("Internal")?"int":sh.includes("customers")?"cust":"part"),sh.startsWith("Internal")?"Internal":sh.includes("customers")?"Share with customers":"Share with partners");
-  t.appendChild(tg);d.appendChild(t);
-  if(r.Description)d.appendChild(el("p",null,r.Description));
-  d.appendChild(el("div","meta",[r.Owner,r["Version date"]?"updated "+fmt(r["Version date"],{month:"short",day:"numeric",year:"numeric"}):""].filter(Boolean).join(" · ")));
-  const row=el("div","row");
-  (r.File||[]).slice(0,2).forEach(f=>{const ext=fileExt(f.filename);const v=viewUrl(f,ext);
-    if(v){const w=el("a","btn sm");w.href=v;w.target="_blank";w.rel="noopener";w.appendChild(el("span","ext",ext));w.appendChild(document.createTextNode("View"));w.onclick=()=>track("Open resource",r.Name);row.appendChild(w);}
-    const a=el("a",v?"btn ghost sm":"btn sm");a.href=f.url;a.target="_blank";a.rel="noopener";a.setAttribute("download",f.filename||"");if(!v)a.appendChild(el("span","ext",ext));a.appendChild(document.createTextNode("Download"));a.onclick=()=>track("Open resource",r.Name);row.appendChild(a);});
-  if(r.Link){const a=el("a","btn ghost sm",/drive\.google|docs\.google/.test(r.Link)?"Open in Drive":"Open link");a.href=r.Link;a.target="_blank";a.rel="noopener";a.onclick=()=>track("Open resource",r.Name);row.appendChild(a);}
-  d.appendChild(row);return d;
+  const d=el("div","rc");const L=el("div","rl");
+  const t=el("div","top2");const nm=el("b",null,r.Name||"Untitled");nm.title=r.Name||"";t.appendChild(nm);
+  const sh=r.Sharing||"Internal only";t.appendChild(el("span","tag "+(sh.startsWith("Internal")?"int":sh.includes("customers")?"cust":"part"),sh.startsWith("Internal")?"Internal":sh.includes("customers")?"Customers":"Partners"));
+  L.appendChild(t);
+  const info=[r.Description,[r.Owner,r["Version date"]?"updated "+fmt(r["Version date"],{month:"short",day:"numeric",year:"numeric"}):""].filter(Boolean).join(" · ")].filter(Boolean).join("  ·  ");
+  if(info){const p=el("p",null,info);p.title=info;L.appendChild(p);}
+  d.appendChild(L);
+  const fl=el("div","fl");
+  (r.File||[]).slice(0,3).forEach(f=>{const ext=fileExt(f.filename);const v=viewUrl(f,ext);
+    const a=el("a",null,ext);a.href=v||f.url;a.target="_blank";a.rel="noopener";a.title=(v?"View ":"Download ")+(f.filename||ext);if(!v)a.setAttribute("download",f.filename||"");a.onclick=()=>track("Open resource",r.Name);fl.appendChild(a);
+    if(v){const dl=el("a","dl","\u2193");dl.href=f.url;dl.target="_blank";dl.rel="noopener";dl.setAttribute("download",f.filename||"");dl.title="Download "+(f.filename||ext);dl.onclick=()=>track("Open resource",r.Name);fl.appendChild(dl);}});
+  if(r.Link){const a=el("a",null,/drive\.google|docs\.google/.test(r.Link)?"Drive":"Link");a.href=r.Link;a.target="_blank";a.rel="noopener";a.onclick=()=>track("Open resource",r.Name);fl.appendChild(a);}
+  d.appendChild(fl);return d;
 }
 
 /* ---------- decks ---------- */
@@ -694,6 +707,9 @@ function decks(me,admin){
     const w=el("div","row");w.style.cssText="background:#FDF1D8;border-radius:10px;padding:10px 12px;margin-bottom:10px;align-items:center;justify-content:space-between";
     w.appendChild(el("b",null,"Your deck for "+(d.fields["Company you are meeting with"]||"your meeting")+" is waiting for your review"));
     const a=el("a","btn sm","Review it");a.href=BASE+"deckreview/?d="+d.id;w.appendChild(a);c.appendChild(w);});
+  /* ready-to-use decks: Resource Library rows with Category = Decks */
+  const ready=(D.resources||[]).map(r=>Object.assign({id:r.id},r.fields)).filter(r=>r.Category==="Decks").sort((a,b)=>(a.Order||99)-(b.Order||99));
+  if(ready.length){c.appendChild(el("div","grp","Ready-to-use decks"));const g=el("div","res");ready.forEach(r=>g.appendChild(resCard(r)));c.appendChild(g);}
   c.appendChild(el("div","grp","Recent decks"));
   if(!list.length){c.appendChild(el("div","empty","No decks yet."));return c;}
   const ul=el("ul","list");
