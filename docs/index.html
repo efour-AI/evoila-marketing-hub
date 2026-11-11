@@ -147,14 +147,22 @@ label.l{display:block;font-size:12.5px;font-weight:600;margin:8px 0 3px}
 .people td{padding:7px 6px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
 .people tr:last-child td{border-bottom:0}
 .bar{height:8px;border-radius:4px;background:linear-gradient(90deg,var(--green),var(--blue));min-width:2px}
-.usx td{vertical-align:top}.usx td b{font-weight:600}
-.usx tr.u-row{cursor:pointer}.usx tr.u-row:hover td{background:var(--soft)}.usx tr.u-row td:first-child b::before{content:"▸ ";color:var(--muted)}.usx tr.u-row.open td:first-child b::before{content:"▾ "}
-.usx .u-sub{font-size:11.5px;color:var(--muted);display:block;margin-top:1px;line-height:1.35}
-.u-tl{margin:4px 0 10px 14px;border-left:2px solid var(--line);padding-left:12px}
-.u-tl .u-ss{font-size:12px;font-weight:700;color:var(--muted);margin:10px 0 4px}
-.u-ev{display:flex;gap:10px;font-size:13px;padding:3px 0}.u-ev .u-tm{color:var(--muted);flex:none;min-width:62px;font-variant-numeric:tabular-nums}
-.u-ev .u-ty{flex:none;min-width:120px;font-weight:600}.u-ev .u-it{color:var(--ink);word-break:break-word}
-.u-feed .u-ev{border-top:1px solid var(--line);padding:5px 0}.u-feed .u-ev .u-tm{min-width:118px}.u-feed .u-ev .u-who{flex:none;min-width:56px;font-weight:600}.u-feed .u-ev .u-ty{color:var(--muted);font-weight:400}
+.usx{table-layout:fixed}.usx th{white-space:nowrap}.usx th.r,.usx td.r{text-align:right}
+.usx td{vertical-align:middle;padding:10px 8px}.usx tr.u-row{cursor:pointer}.usx tr.u-row:hover td{background:var(--soft)}
+.usx .u-nm{display:flex;align-items:center;gap:8px;font-weight:600}.usx .u-car{color:var(--muted);font-size:11px;width:10px;transition:transform .15s}.usx tr.open .u-car{transform:rotate(90deg)}
+.usx .u-av{width:26px;height:26px;border-radius:50%;object-fit:cover;background:var(--idlebg);flex:none}
+.usx .u-ini{display:inline-flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:var(--idle)}
+.usx .u-num{font-weight:600;font-size:14px}.usx .u-zero{color:var(--line);font-weight:400}
+.usx .u-sub{font-size:12px;color:var(--muted);display:block;margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.usx tr.u-x td{background:var(--soft);padding:4px 16px 14px}
+.u-ss{font-size:12px;font-weight:600;color:var(--muted);margin:12px 0 4px;display:flex;gap:8px;align-items:center}
+.u-ss .u-tag{font-weight:500;background:var(--card);border:1px solid var(--line);border-radius:999px;padding:1px 8px;font-size:11px}
+.u-ev{display:flex;gap:12px;font-size:13px;padding:3px 0;line-height:1.4}.u-ev .u-tm{color:var(--muted);flex:none;width:64px;font-variant-numeric:tabular-nums}
+.u-ev .u-it{color:var(--ink);word-break:break-word}.u-ev .u-ct{color:var(--muted);font-size:12px;margin-left:4px}
+.u-two{display:grid;gap:24px;margin-top:8px}@media(min-width:900px){.u-two{grid-template-columns:1fr 1fr}}
+.u-day{font-size:12px;font-weight:600;color:var(--muted);margin:14px 0 2px;padding-bottom:4px;border-bottom:1px solid var(--line)}
+.u-feed .u-ev .u-who{flex:none;width:56px;font-weight:600}
+.u-more{margin-top:10px}
 .feed{list-style:none;margin:0;padding:0}
 .feed li{display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:13.5px;align-items:baseline}
 .feed li:first-child{border-top:0}
@@ -1001,13 +1009,37 @@ function requests(me,admin){
 
 /* ---------- usage (admins) ---------- */
 /* Every touchpoint from the Hub Activity table. Loads its own data (paged) so it is not capped at 100 rows. */
-const USAGE={days:30,rows:null,open:{},who:"All",type:"All"};
+const USAGE={days:30,rows:null,open:{},who:"All",feed:false,feedN:40};
 function normAct(a){
   let type=a.Type||"Other",item=a.Item||"";
   if(type==="Other"&&item==="Review page"){type="Page view";item="Post review";}
   else if(type==="Other"&&item==="Open post review"){type="Post review";item="Opened from the hub";}
   else if(type==="Visit"&&/refresh/i.test(item))type="Refresh";
   return {id:a.id,p:a.Person||"",type,item,when:a.When||"",dev:a.Device||""};
+}
+/* one plain sentence per event */
+function say(e){
+  const it=e.item||"",strip=s=>s.replace(/^[^:]*: /,"");
+  switch(e.type){
+    case "Visit":return "Opened the hub";
+    case "Page view":return "Opened "+it.replace(/ · rec\w+$/,"").replace(/^Post review$/,"post review").replace(/^Deck review$/,"a deck review").replace(/^One-pager$/,"the one-pager");
+    case "Post review":return it==="Opened from the hub"?"Opened post review from the hub":it;
+    case "Open resource":return "Opened "+it;
+    case "Preview resource":return "Previewed "+it;
+    case "Preview deck":return "Previewed deck: "+it;
+    case "Download deck":return "Downloaded "+it.trim();
+    case "Download":return "Downloaded "+strip(it);
+    case "Link opened":return "Opened link "+strip(it);
+    case "Ask the hub":return "Asked the hub: “"+it+"”";
+    case "Ask marketing":return "Asked marketing: "+strip(it);
+    case "Deck review":return it==="Opened deck review"?"Opened a deck review":it==="Slide rewrite"?"Rewrote a slide":it;
+    case "Custom deck":return it==="Opened builder"?"Opened the deck builder":"Custom deck: "+strip(it);
+    case "Convert deck":return it==="Opened converter"?"Opened the deck converter":"Convert deck: "+strip(it);
+    case "Request deck":return it==="Walking deck"?"Opened the walking deck form":"Requested "+it.charAt(0).toLowerCase()+it.slice(1);
+    case "One-pager":return it==="Opened"?"Opened the one-pager":"One-pager: "+it.charAt(0).toLowerCase()+it.slice(1);
+    case "What's new":return "Clicked What's new: "+strip(it);
+    default:return (e.type+(it?": "+it:""));
+  }
 }
 async function loadUsage(){
   const rows=[];let offset="",n=0,ok=true;
@@ -1021,14 +1053,19 @@ function sessionize(evs){const out=[];let cur=null;
   return out;}
 function dur(s){s=Math.round(s);if(s<60)return s+"s";const m=Math.round(s/60);return m<60?m+" min":Math.floor(m/60)+"h "+(m%60)+"m";}
 function tm(d){return new Date(d).toLocaleTimeString(undefined,{hour:"numeric",minute:"2-digit"});}
+function dayLabel(d){const x=new Date(d),t=new Date();const y=new Date(t);y.setDate(t.getDate()-1);
+  if(x.toDateString()===t.toDateString())return "Today";if(x.toDateString()===y.toDateString())return "Yesterday";
+  return x.toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"});}
+/* collapse back-to-back identical events into one line with a count */
+function squash(evs){const out=[];evs.forEach(e=>{const s=say(e),l=out[out.length-1];if(l&&l.s===s)l.n++;else out.push({e,s,n:1});});return out;}
 function usage(){
   const c=section("usage","Hub usage","Admins only · Kevin's own testing not counted");
   const top=el("div","chips");
-  [7,30,90].forEach(d=>{const b=el("button","chip"+(USAGE.days===d?" on":""),"Last "+d+" days");b.type="button";b.onclick=async()=>{USAGE.days=d;USAGE.rows=null;paint();};top.appendChild(b);});
+  [7,30,90].forEach(d=>{const b=el("button","chip"+(USAGE.days===d?" on":""),"Last "+d+" days");b.type="button";b.onclick=()=>{USAGE.days=d;USAGE.rows=null;paint();};top.appendChild(b);});
   c.appendChild(top);const body=el("div");c.appendChild(body);
   async function paint(){
     [...top.children].forEach((b,i)=>b.classList.toggle("on",[7,30,90][i]===USAGE.days));
-    if(!USAGE.rows){body.innerHTML="";body.appendChild(el("div","empty","Loading every touchpoint…"));await loadUsage();}
+    if(!USAGE.rows){body.innerHTML="";body.appendChild(el("div","empty","Loading…"));await loadUsage();}
     drawUsage(body);
   }
   paint();return c;
@@ -1037,71 +1074,78 @@ function drawUsage(body){
   body.innerHTML="";
   const TEAM=PEOPLE.filter(p=>p!=="Kevin O'Brien");
   const cut=Date.now()-USAGE.days*864e5,R=USAGE.rows.filter(r=>Date.parse(r.when)>=cut&&TEAM.includes(r.p));
-  if(USAGE.partial)body.appendChild(el("p","measure","Showing the most recent 100 events only. The full usage feed isn't switched on yet."));
+  if(USAGE.partial)body.appendChild(el("p","measure","Showing the most recent 100 events only."));
   const is=(r,t,re)=>r.type===t&&(!re||re.test(r.item));
   const count=(m,f)=>m.filter(f).length;
-  const t=el("table","people usx");const hr=el("tr");
-  ["","Sessions","Last active","Time in hub","Posts","Decks","Files","Asked",""].forEach(x=>hr.appendChild(el("th",null,x)));t.appendChild(hr);
-  const stats=TEAM.map(p=>{const m=R.filter(r=>r.p===p),ss=sessionize(m);return {p,m,ss};});
-  const max=Math.max(1,...stats.map(s=>s.ss.length));
-  stats.forEach(({p,m,ss})=>{
+  const num=(n,sub)=>{const td=el("td","r");td.appendChild(el("span","u-num"+(n?"":" u-zero"),n?String(n):"–"));if(sub&&n)td.appendChild(el("span","u-sub",sub));return td;};
+  const parts=a=>a.filter(x=>x[0]).map(x=>x[0]+" "+x[1]).join(" · ");
+
+  const t=el("table","people usx");const cg=el("colgroup");["20%","12%","29%","9%","9%","7%","7%","7%"].forEach(w=>{const c=el("col");c.style.width=w;cg.appendChild(c);});t.appendChild(cg);
+  const hr=el("tr");[["Person"],["Sessions","r"],["Last active"],["Time","r"],["Approved","r"],["Decks","r"],["Files","r"],["Asked","r"]].forEach(([x,k])=>hr.appendChild(el("th",k||null,x)));t.appendChild(hr);
+  TEAM.forEach(p=>{
+    const m=R.filter(r=>r.p===p),ss=sessionize(m),last=ss.length?ss[ss.length-1].evs.slice(-1)[0]:null;
     const tr=el("tr","u-row"+(USAGE.open[p]?" open":""));
-    const last=m[m.length-1];
-    const days=new Set(m.map(r=>r.when.slice(0,10))).size;
+    const nm=el("td");const nd=el("div","u-nm");nd.appendChild(el("span","u-car","▶"));
+    if(PHOTOS[p]){const im=el("img","u-av");im.src=BASE+PHOTOS[p];im.alt="";nd.appendChild(im);}else{const a=el("span","u-av u-ini",p.charAt(0));nd.appendChild(a);}
+    nd.appendChild(document.createTextNode(first(p)));nm.appendChild(nd);tr.appendChild(nm);
+    const days=new Set(m.filter(r=>r.type!=="Refresh").map(r=>r.when.slice(0,10))).size,ph=count(ss,s=>s.dev==="phone");
+    {const td=num(ss.length,days+(days>1?" days":" day"));if(ph)td.title=ph+" of "+ss.length+" on a phone";tr.appendChild(td);}
+    const la=el("td");
+    if(last){la.appendChild(el("span","u-num",dayLabel(last.when)+", "+tm(last.when)));la.appendChild(el("span","u-sub",say(last)));}
+    else la.appendChild(el("span","u-num u-zero","Not in this period"));
+    tr.appendChild(la);
     const secs=m.filter(r=>r.type==="Time on page").reduce((a,r)=>a+(+((r.item.match(/(\d+)s$/)||[])[1]||0)),0);
-    const spanS=ss.reduce((a,s)=>a+(s.end-s.start)/1000,0);
-    const cell=(main,sub)=>{const td=el("td");td.appendChild(el("b",null,main));if(sub)td.appendChild(el("span","u-sub",sub));return td;};
-    tr.appendChild(cell(first(p)));
-    tr.appendChild(cell(String(ss.length),ss.length?days+" day"+(days>1?"s":"")+" · "+count(ss,s=>s.dev==="phone")+" on phone":""));
-    tr.appendChild(last?cell(fmt(last.when,{month:"short",day:"numeric"})+" "+tm(last.when),(last.type==="Visit"?"Opened the hub":last.type+(last.item?": "+last.item:"")).slice(0,60)):cell("Not yet"));
-    tr.appendChild(cell(secs?dur(secs):(spanS?"~"+dur(spanS):"–"),secs?"measured":(spanS?"first to last click":"")));
-    const pv=count(m,r=>is(r,"Post review",/^Viewed/)||is(r,"Page view",/^Post review/)),pa=count(m,r=>is(r,"Post review",/^Approved|^Posted now/)),pb=count(m,r=>is(r,"Post review",/^Sent back|^Held|^Declined/));
-    tr.appendChild(cell(String(pa)+" approved",pv+" review visits"+(pb?" · "+pb+" sent back/held":"")));
-    const dq=count(m,r=>["Request deck","Custom deck","Convert deck"].includes(r.type)&&!/^Opened|^Walking deck$/.test(r.item)),dr=count(m,r=>r.type==="Deck review"&&/Submitted|rewrite|rebuild/i.test(r.item)),dd=count(m,r=>r.type==="Download deck"||is(r,"Deck review",/Download/)||is(r,"Preview deck"));
-    tr.appendChild(cell(String(dq+dd+dr),dq+" requested · "+dd+" opened/downloaded · "+dr+" review edits"));
-    const fo=count(m,r=>r.type==="Open resource"),fp=count(m,r=>r.type==="Preview resource"),fd=count(m,r=>r.type==="Download");
-    tr.appendChild(cell(String(fo+fp+fd),fo+" opened · "+fp+" previewed · "+fd+" downloads"));
-    tr.appendChild(cell(String(count(m,r=>r.type==="Ask the hub"||r.type==="Ask marketing"))));
-    const td=el("td");td.style.width="16%";const b=el("div","bar");b.style.width=(100*ss.length/max)+"%";td.appendChild(b);tr.appendChild(td);
+    const span=ss.reduce((a,s)=>a+(s.end-s.start)/1000,0),tt=secs||span;
+    const ttd=el("td","r");ttd.appendChild(el("span","u-num"+(tt?"":" u-zero"),tt?dur(tt):"–"));tr.appendChild(ttd);
+    const pa=count(m,r=>is(r,"Post review",/^Approved|^Posted now/)),pb=count(m,r=>is(r,"Post review",/^Sent back|^Held|^Declined/));
+    tr.appendChild(num(pa,pb?pb+" sent back":""));
+    const dq=count(m,r=>["Request deck","Custom deck","Convert deck"].includes(r.type)&&!/^Opened|^Walking deck$/.test(r.item)),dr=count(m,r=>r.type==="Deck review"&&/Submitted/i.test(r.item)),dd=count(m,r=>r.type==="Download deck"||is(r,"Deck review",/Download/));
+    {const td=num(dq+dd+dr);td.title=parts([[dq,"requested"],[dd,"downloaded"],[dr,"reviewed"]]);tr.appendChild(td);}
+    tr.appendChild(num(count(m,r=>["Open resource","Preview resource","Download"].includes(r.type))));
+    tr.appendChild(num(count(m,r=>r.type==="Ask the hub"||r.type==="Ask marketing")));
     tr.onclick=()=>{USAGE.open[p]=!USAGE.open[p];drawUsage(body);};
     t.appendChild(tr);
-    if(USAGE.open[p]){const xr=el("tr"),xd=el("td");xd.colSpan=9;const tl=el("div","u-tl");
-      if(!ss.length)tl.appendChild(el("div","empty","Nothing in this period."));
+    if(USAGE.open[p]){const xr=el("tr","u-x"),xd=el("td");xd.colSpan=8;
+      if(!ss.length)xd.appendChild(el("div","empty","Nothing in this period."));
       ss.slice().reverse().forEach(s=>{
-        tl.appendChild(el("div","u-ss",new Date(s.start).toLocaleDateString(undefined,{weekday:"short",month:"short",day:"numeric"})+", "+tm(s.start)+" · "+s.dev+" · "+(s.end>s.start?dur((s.end-s.start)/1000):"single click")+" · "+s.evs.length+" event"+(s.evs.length>1?"s":"")));
-        s.evs.forEach(e=>{const r=el("div","u-ev");r.append(el("span","u-tm",tm(e.when)),el("span","u-ty",e.type==="Visit"?"Hub":e.type),el("span","u-it",e.type==="Visit"?"Opened the hub":e.item));tl.appendChild(r);});
+        const h=el("div","u-ss");h.appendChild(document.createTextNode(dayLabel(s.start)+", "+tm(s.start)));
+        h.appendChild(el("span","u-tag",s.end>s.start?dur((s.end-s.start)/1000):"under a minute"));if(s.dev==="phone")h.appendChild(el("span","u-tag","phone"));
+        xd.appendChild(h);
+        squash(s.evs.filter(e=>e.type!=="Time on page")).forEach(x=>{const r=el("div","u-ev");r.appendChild(el("span","u-tm",tm(x.e.when)));const it=el("span","u-it",x.s);if(x.n>1)it.appendChild(el("span","u-ct","×"+x.n));r.appendChild(it);xd.appendChild(r);});
       });
-      xd.appendChild(tl);xr.appendChild(xd);t.appendChild(xr);}
+      xr.appendChild(xd);t.appendChild(xr);}
   });
   body.appendChild(t);
-  body.appendChild(el("p","measure","Click a name for every session and click. A session ends after 30 minutes without activity. Time in hub is measured from the day this tracking went live; older sessions show first-to-last click."));
+  body.appendChild(el("p","measure","Click a person to see each session. A session ends after 30 minutes idle. Time is measured from Nov 11; before that it is first to last click."));
 
-  /* most opened files: opens, previews and downloads together */
-  const opens={};R.filter(r=>["Open resource","Preview resource","Download","Download deck","Preview deck"].includes(r.type)).forEach(r=>{const k=r.item.replace(/^[^:]*: /,"").replace(/ \((PDF|PPTX|DOCX|XLSX)\)$/i,"");opens[k]=(opens[k]||0)+1;});
-  const tops=Object.entries(opens).sort((a,b)=>b[1]-a[1]).slice(0,8);
-  body.appendChild(el("div","grp","Most opened files and decks"));
-  if(!tops.length)body.appendChild(el("div","empty","No files opened yet."));
-  else{const ul=el("ul","list");tops.forEach(([k,v])=>{const li=el("li");li.append(el("div","l",k),el("div","r",v+" time"+(v>1?"s":"")));ul.appendChild(li);});body.appendChild(ul);}
+  const two=el("div","u-two");
+  const L=el("div");
+  const opens={};R.filter(r=>["Open resource","Preview resource","Download","Download deck","Preview deck"].includes(r.type)).forEach(r=>{const k=r.item.replace(/^[^:]*: /,"").replace(/ \((PDF|PPTX|DOCX|XLSX)\)$/i,"").replace(/ (PDF|PPTX)$/,"").trim();opens[k]=(opens[k]||0)+1;});
+  const tops=Object.entries(opens).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  L.appendChild(el("div","grp","Most opened"));
+  if(!tops.length)L.appendChild(el("div","empty","Nothing opened yet."));
+  else{const ul=el("ul","list");tops.forEach(([k,v])=>{const li=el("li");li.append(el("div","l",k),el("div","r",String(v)));ul.appendChild(li);});L.appendChild(ul);}
+  const Q=el("div");const qs=R.filter(r=>r.type==="Ask the hub").reverse();
+  Q.appendChild(el("div","grp","Asked the hub ("+qs.length+")"));
+  if(!qs.length)Q.appendChild(el("div","empty","No questions yet."));
+  else{const ul=el("ul","list");qs.slice(0,6).forEach(a=>{const li=el("li");const l=el("div","l");const q=el("a",null,a.item||"");q.href=BASE+"answer/?id="+a.id;l.appendChild(q);li.append(l,el("div","r",first(a.p)+" · "+fmt(a.when,{month:"short",day:"numeric"})));ul.appendChild(li);});Q.appendChild(ul);}
+  two.append(L,Q);body.appendChild(two);
 
-  const qs=R.filter(r=>r.type==="Ask the hub").reverse();
-  body.appendChild(el("div","grp","Questions asked in Ask the hub ("+qs.length+")"));
-  if(!qs.length)body.appendChild(el("div","empty","No questions yet."));
-  else{const ul=el("ul","list");qs.slice(0,25).forEach(a=>{const li=el("li");const l=el("div","l");const q=el("a",null,a.item||"");q.href=BASE+"answer/?id="+a.id;q.style.fontWeight="600";l.appendChild(q);li.append(l,el("div","r",first(a.p)+" · "+fmt(a.when,{month:"short",day:"numeric"})));ul.appendChild(li);});body.appendChild(ul);}
-
-  /* every touchpoint, filterable */
-  body.appendChild(el("div","grp","Every touchpoint"));
-  const types=["All",...new Set(R.filter(r=>r.type!=="Refresh"&&r.type!=="Time on page").map(r=>r.type==="Visit"?"Hub":r.type))].sort((a,b)=>a==="All"?-1:b==="All"?1:a.localeCompare(b));
-  const fr=el("div","row");fr.style.gap="8px";fr.style.marginBottom="8px";
-  const sw=el("select");["All",...TEAM].forEach(p=>{const o=el("option",null,p==="All"?"Everyone":first(p));o.value=p;if(USAGE.who===p)o.selected=true;sw.appendChild(o);});
-  const st=el("select");types.forEach(x=>{const o=el("option",null,x==="All"?"Every kind":x);o.value=x;if(USAGE.type===x)o.selected=true;st.appendChild(o);});
-  sw.style.maxWidth=st.style.maxWidth="200px";sw.onchange=()=>{USAGE.who=sw.value;drawUsage(body);};st.onchange=()=>{USAGE.type=st.value;drawUsage(body);};
-  fr.append(sw,st);body.appendChild(fr);
-  const feed=el("div","u-feed");
-  const F=R.filter(r=>r.type!=="Refresh"&&(USAGE.who==="All"||r.p===USAGE.who)&&(USAGE.type==="All"||(USAGE.type==="Hub"?r.type==="Visit":r.type===USAGE.type))).reverse();
-  if(!F.length)feed.appendChild(el("div","empty","Nothing matches."));
-  F.slice(0,300).forEach(e=>{const r=el("div","u-ev");r.append(el("span","u-tm",fmt(e.when,{month:"short",day:"numeric"})+" "+tm(e.when)),el("span","u-who",first(e.p)),el("span","u-ty",e.type==="Visit"?"Hub":e.type),el("span","u-it",(e.type==="Visit"?"Opened the hub":e.item)+(e.dev==="phone"?" · phone":"")));feed.appendChild(r);});
-  if(F.length>300)feed.appendChild(el("p","measure","Showing the latest 300 of "+F.length+"."));
+  /* all activity, collapsed until asked for */
+  const hd=el("div","row");hd.style.cssText="justify-content:space-between;align-items:center;margin-top:18px";
+  hd.appendChild(el("div","grp","All activity"));
+  const tg=el("button","btn ghost sm",USAGE.feed?"Hide":"Show all activity");tg.type="button";tg.onclick=()=>{USAGE.feed=!USAGE.feed;drawUsage(body);};hd.appendChild(tg);
+  body.appendChild(hd);
+  if(!USAGE.feed)return;
+  const chips=el("div","chips");["All",...TEAM].forEach(p=>{const b=el("button","chip"+(USAGE.who===p?" on":""),p==="All"?"Everyone":first(p));b.type="button";b.onclick=()=>{USAGE.who=p;USAGE.feedN=40;drawUsage(body);};chips.appendChild(b);});
+  body.appendChild(chips);
+  const F=R.filter(r=>r.type!=="Refresh"&&r.type!=="Time on page"&&(USAGE.who==="All"||r.p===USAGE.who)).reverse();
+  const feed=el("div","u-feed");let day="";
+  if(!F.length)feed.appendChild(el("div","empty","Nothing here."));
+  F.slice(0,USAGE.feedN).forEach(e=>{const d=dayLabel(e.when);if(d!==day){day=d;feed.appendChild(el("div","u-day",d));}
+    const r=el("div","u-ev");r.appendChild(el("span","u-tm",tm(e.when)));if(USAGE.who==="All")r.appendChild(el("span","u-who",first(e.p)));r.appendChild(el("span","u-it",say(e)+(e.dev==="phone"?" · phone":"")));feed.appendChild(r);});
   body.appendChild(feed);
+  if(F.length>USAGE.feedN){const mb=el("button","btn ghost sm u-more","Show more ("+(F.length-USAGE.feedN)+" left)");mb.type="button";mb.onclick=()=>{USAGE.feedN+=60;drawUsage(body);};body.appendChild(mb);}
 }
 
 /* ---------- meetings ---------- */
