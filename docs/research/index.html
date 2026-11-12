@@ -126,6 +126,12 @@ select{font:inherit;font-size:13px;color:var(--ink);background:var(--card);borde
 .addidea{display:flex;gap:6px;margin:12px 0 0;padding-top:12px;border-top:1px dashed var(--line)}
 .dropped{margin:6px 0 0}
 .dropped summary{cursor:pointer;font-size:12.5px;color:var(--muted)}
+.totop{position:fixed;right:20px;bottom:24px;z-index:20;display:flex;align-items:center;gap:6px;background:var(--violet);color:#fff;border:1px solid rgba(255,255,255,.15);border-radius:999px;padding:10px 14px;font:inherit;font-size:13px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(31,21,52,.25);opacity:0;transform:translateY(12px);pointer-events:none;transition:opacity .2s,transform .2s}
+.totop.show{opacity:1;transform:none;pointer-events:auto}
+.totop svg{width:14px;height:14px}
+@media (prefers-color-scheme:dark){.totop{background:var(--indigo)}}
+@media (max-width:560px){.totop span{display:none}.totop{padding:11px}}
+@media print{.totop{display:none}}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:0 16px 28px}
 @media print{nav.tabs{display:none}header{padding-bottom:20px}.card{break-inside:avoid}#all{display:none}}
 </style>
@@ -313,6 +319,9 @@ document.getElementById("csv").onclick=e=>{e.preventDefault();
   const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([txt],{type:"text/csv"}));a.download="explore2026_videos.csv";a.click();
   if(window.hubTrack)hubTrack("Download","Explore 2026 video data CSV");};
 </script>
+<button type="button" class="totop" id="totop" aria-label="Back to top"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 13V3M3.5 7.5 8 3l4.5 4.5"/></svg><span>Top</span></button>
+<script>(function(){const b=document.getElementById("totop");const f=()=>b.classList.toggle("show",window.scrollY>600);window.addEventListener("scroll",f,{passive:true});f();
+b.onclick=()=>{window.scrollTo({top:0,behavior:matchMedia("(prefers-reduced-motion: reduce)").matches?"auto":"smooth"});if(location.hash)history.replaceState(null,"",location.pathname);};})();</script>
 <script>
 /* ---- Explore 2027 session ideas: live from Airtable through Make scenario "evoila Hub Explore Ideas" ---- */
 (function(){
