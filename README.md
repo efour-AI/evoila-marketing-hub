@@ -123,3 +123,21 @@ comment down. The $100 is a one-time buy-in that rides every week's pick (compou
 Emails: Airtable automation "Stock talk: tell them someone talked trash" emails the person a comment is aimed at (or, when
 the pick's owner fires back in their own thread, the last person who talked trash to them). The email never shows the
 comment; its link (`#t=<token>&go=stocks&th=<person>`) opens the hub on that thread.
+
+## Explore research (docs/research)
+
+Static page: what people watched across all 190 VMware Explore 2026 on-demand videos (views pulled from
+vmware.com/explore/video/search on 2026-11-12), by topic and by fit with what evoila sells. The data is embedded in
+the page; to refresh it, rebuild the page from a new pull. The page itself is public (like every page in docs/), so it
+holds only the research.
+
+The Explore 2027 session ideas load only with a hub link, through Make scenario "evoila Hub Explore Ideas"
+(7016111, hook 3059126). Airtable tables **Explore 2027 Ideas** (tblROwwllTRKr7ce2) and **Explore 2027 Idea Notes**
+(tblm4VrKFVqS7OAZP).
+
+- `a=ideas` lists ideas and notes. `a=save` saves an idea's title, track, format, level, why, watch-out and abstract
+  draft. `a=note` adds a note. `a=add` adds an idea for a speaker. `a=status` sets Status (Brainstorming, Ready for
+  Kevin, Deck in progress, Submitted, Dropped). Last edited by, Ready by and a note's From come from the sender's
+  personal link, so nobody can write as someone else.
+- Anyone with a hub link can edit any idea and add notes. Only Kevin sees the full status menu.
+- Airtable automation "Explore idea: ready, tell Kevin" emails Kevin when an idea's Status becomes Ready for Kevin.

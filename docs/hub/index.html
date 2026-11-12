@@ -504,6 +504,7 @@ function actions(admin,author){
   add("✎","Build your own deck","Outline it slide by slide, we build it on brand",BASE+"build/",()=>track("Custom deck","Opened builder"));
   add("⇄","Convert your deck","Upload your own slides, get them back in the evoila template",BASE+"convert/",()=>track("Convert deck","Opened converter"));
   add("❏","One-pager","Send the evoila US one-pager, or describe a change for a new version",BASE+"onepager/",()=>track("One-pager","Opened"));
+  add("◔","Explore 2026 research","What people watched at Explore 2026, and session ideas for Explore 2027",BASE+"research/",()=>track("Research","Explore 2026"));
   if(author)add("✦","Create a post","Topic and bullets in, a finished post with an image in a minute",BASE+"create/");
   else if(admin)add("✦","Create a post for an author","Topic and bullets in; it lands in their queue in their voice",BASE+"create/");
   return g;

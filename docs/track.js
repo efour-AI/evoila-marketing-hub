@@ -22,7 +22,7 @@
   var seg=location.pathname.replace(/index\.html$/,"").split("/").filter(Boolean).pop()||"";
   var PAGES={"evoila-marketing-hub":"Hub","hub":"Hub","review":"Post review","deckreview":"Deck review","deck":"Walking deck form",
     "build":"Build your own deck","convert":"Convert your deck","onepager":"One-pager","create":"Self-serve post",
-    "authors":"Author desk","voice":"Voice","answer":"Ask the hub answer"};
+    "authors":"Author desk","voice":"Voice","answer":"Ask the hub answer","research":"Explore research"};
   var PAGE=PAGES[seg]||seg||"Hub";
 
   function send(type,item){
