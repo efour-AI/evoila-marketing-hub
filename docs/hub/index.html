@@ -318,7 +318,7 @@ footer{text-align:center;font-size:12px;color:var(--muted);padding:0 16px 28px}
 </div></header>
 <nav class="tabs" id="tabs"><div class="wrap">
  <a href="#home">Home</a><a href="#strategy">Strategy</a><a href="#library">Library</a><a href="#decks">Sales materials</a>
- <a href="#linkedin">LinkedIn</a><a href="#meetings">Meetings</a><a href="#stocks">Stock picks</a><a href="#analytics">Analytics</a><a href="#usage" class="hidden" id="usageTab">Usage</a>
+ <a href="#linkedin">LinkedIn</a><a href="#meetings">Meetings</a><a href="/evoila-marketing-hub/research/" data-same="1" id="researchTab">Explore research</a><a href="#stocks">Stock picks</a><a href="#analytics">Analytics</a><a href="#usage" class="hidden" id="usageTab">Usage</a>
 </div></nav>
 <main class="wrap">
  <div id="flash"></div>
@@ -504,7 +504,6 @@ function actions(admin,author){
   add("✎","Build your own deck","Outline it slide by slide, we build it on brand",BASE+"build/",()=>track("Custom deck","Opened builder"));
   add("⇄","Convert your deck","Upload your own slides, get them back in the evoila template",BASE+"convert/",()=>track("Convert deck","Opened converter"));
   add("❏","One-pager","Send the evoila US one-pager, or describe a change for a new version",BASE+"onepager/",()=>track("One-pager","Opened"));
-  add("◔","Explore 2026 research","What people watched at Explore 2026, and session ideas for Explore 2027",BASE+"research/",()=>track("Research","Explore 2026"));
   if(author)add("✦","Create a post","Topic and bullets in, a finished post with an image in a minute",BASE+"create/");
   else if(admin)add("✦","Create a post for an author","Topic and bullets in; it lands in their queue in their voice",BASE+"create/");
   return g;
@@ -1317,7 +1316,7 @@ function stocks(){
 
 /* ---------- nav highlight ---------- */
 function spy(){
-  const links=[...document.querySelectorAll("#tabs a")];
+  const links=[...document.querySelectorAll("#tabs a")].filter(a=>(a.getAttribute("href")||"")[0]==="#");
   const io=new IntersectionObserver(es=>{es.forEach(e=>{if(e.isIntersecting){links.forEach(a=>a.classList.toggle("on",a.getAttribute("href")==="#"+e.target.id));}});},{rootMargin:"-40% 0px -55% 0px"});
   links.forEach(a=>{const s=document.querySelector(a.getAttribute("href"));if(s)io.observe(s);});
 }
@@ -1325,7 +1324,7 @@ function spy(){
 /* ---------- dialogs ---------- */
 $("#askTop").onclick=()=>$("#askDlg").showModal();
 /* anything that leaves the hub opens in a new tab */
-document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest("a[href]");if(!a)return;const h=a.getAttribute("href")||"";if(!h||h[0]==="#"||/^(javascript|mailto|tel):/i.test(h))return;a.target="_blank";a.rel="noopener";},true);
+document.addEventListener("click",e=>{const a=e.target.closest&&e.target.closest("a[href]");if(!a)return;const h=a.getAttribute("href")||"";if(!h||h[0]==="#"||a.dataset.same||/^(javascript|mailto|tel):/i.test(h))return;a.target="_blank";a.rel="noopener";},true);
 $("#askCancel").onclick=()=>$("#askDlg").close();
 $("#askSend").onclick=async()=>{
   const title=$("#askTitle").value.trim();if(!title){$("#askTitle").focus();return;}
