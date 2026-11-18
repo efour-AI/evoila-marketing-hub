@@ -126,6 +126,8 @@ label.l{display:block;font-size:12.5px;font-weight:600;margin:8px 0 3px}
 @media(max-width:640px){.rc{flex-direction:column;align-items:flex-start;gap:6px}.rc b,.rc p{white-space:normal}}
 .feed a.go{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}.feed a.go:hover{color:var(--indigo);border-bottom-color:var(--indigo)}
 .tag{font-size:10.5px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;padding:2px 7px;border-radius:6px;white-space:nowrap}
+.rc .rdate{font-size:11.5px;color:var(--muted);white-space:nowrap;flex:none}
+.libsort{margin-left:auto;font-size:12px;padding:3px 6px;border:1px solid var(--line);border-radius:7px;background:var(--card);color:inherit}
 .tag.int{background:var(--badbg);color:var(--bad)}.tag.cust{background:var(--okbg);color:var(--ok)}.tag.part{background:var(--donebg);color:var(--done)}
 .ext{font-size:11px;font-weight:700;color:var(--muted);border:1px solid var(--line);border-radius:5px;padding:1px 5px;margin-right:6px}
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:10px}
@@ -761,17 +763,19 @@ function initiative(i,items,admin){
 }
 
 /* ---------- library ---------- */
-let libFilter="All";
+let libFilter="All",libSort="order";
 function library(admin){
   const c=section("library","Resource library","Only people with a hub link can open these");
-  const res=D.resources.map(r=>Object.assign({id:r.id},r.fields)).sort((a,b)=>(a.Order||99)-(b.Order||99));
+  const res=D.resources.map(r=>Object.assign({id:r.id},r.fields));
+  const sortRes=()=>res.sort(libSort==="new"?(a,b)=>String(resDate(b)).localeCompare(String(resDate(a))):(a,b)=>(a.Order||99)-(b.Order||99));
   const cats=["All"].concat([...new Set(res.map(r=>r.Category).filter(Boolean))]);
   const chips=el("div","chips");const grid=el("div","res");
   const draw=()=>{grid.innerHTML="";chips.querySelectorAll(".chip").forEach(x=>x.classList.toggle("on",x.dataset.c===libFilter));
-    const show=res.filter(r=>libFilter==="All"||r.Category===libFilter);
+    sortRes();const show=res.filter(r=>libFilter==="All"||r.Category===libFilter);
     if(!show.length)grid.appendChild(el("div","empty","Nothing here yet."));
     show.forEach(r=>grid.appendChild(resCard(r)));};
   cats.forEach(cat=>{const b=el("button","chip",cat);b.type="button";b.dataset.c=cat;b.onclick=()=>{libFilter=cat;draw();};chips.appendChild(b);});
+  const so=el("select","libsort");so.setAttribute("aria-label","Sort the library");so.append(new Option("Sort: hub order","order"),new Option("Sort: newest first","new"));so.value=libSort;so.onchange=()=>{libSort=so.value;draw();};chips.appendChild(so);
   c.append(chips,grid);draw();
   if(admin){const row=el("div","row");row.style.marginTop="12px";const b=el("button","btn ghost sm","+ Add to the library");b.type="button";b.onclick=()=>$("#resDlg").showModal();
     row.append(b);c.appendChild(row);}
@@ -782,12 +786,18 @@ function viewUrl(f,ext){
   if(["DOCX","DOC","PPTX","PPT","XLSX","XLS"].includes(ext))return "https://view.officeapps.live.com/op/view.aspx?src="+encodeURIComponent(f.url);
   return null;
 }
+function resDate(r){return r["Version date"]||r.Added||"";}
+function resDates(r){const o={month:"short",day:"numeric",year:"numeric"};const a=[];
+  if(r["Version date"])a.push("Created "+fmt(r["Version date"],o));
+  if(r.Added)a.push("added to the hub "+fmt(r.Added,o));
+  const x=a.join(" · ");return x.charAt(0).toUpperCase()+x.slice(1);}
 function resCard(r){
   const d=el("div","rc");const L=el("div","rl");
   const t=el("div","top2");const nm=el("b",null,r.Name||"Untitled");nm.title=r.Name||"";t.appendChild(nm);
   const sh=r.Sharing||"Internal only";t.appendChild(el("span","tag "+(sh.startsWith("Internal")?"int":sh.includes("customers")?"cust":"part"),sh.startsWith("Internal")?"Internal":sh.includes("customers")?"Customers":"Partners"));
+  const cd=resDate(r);if(cd){const ds=el("span","rdate",fmt(cd,{month:"short",day:"numeric",year:"numeric"}));ds.title=resDates(r);t.appendChild(ds);}
   L.appendChild(t);
-  const info=[r.Description,[r.Owner,r["Version date"]?"updated "+fmt(r["Version date"],{month:"short",day:"numeric",year:"numeric"}):""].filter(Boolean).join(" · ")].filter(Boolean).join("  ·  ");
+  const info=[r.Owner,r.Description].filter(Boolean).join("  ·  ");
   if(info){const p=el("p",null,info);p.title=info;L.appendChild(p);}
   d.appendChild(L);
   const fl=el("div","fl");
@@ -853,7 +863,7 @@ async function openItem(r){
   track("Preview resource",r.Name);
   const sh=r.Sharing||"Internal only";
   vHeader(r.Name||"Untitled",el("span","tag "+(sh.startsWith("Internal")?"int":sh.includes("customers")?"cust":"part"),sh.startsWith("Internal")?"Internal":sh.includes("customers")?"Customers":"Partners"),
-    [r.Owner,r["Version date"]?"updated "+fmt(r["Version date"],{month:"short",day:"numeric",year:"numeric"}):""].filter(Boolean).join(" · "));
+    [r.Owner,resDates(r)].filter(Boolean).join(" · "));
   const files=(r.File||[]).map(f=>[fileExt(f.filename),f,r.Name]);vFileLinks(files);
   const isDoc=!(r.File||[]).some(f=>/^PPTX?$/.test(fileExt(f.filename)))&&r.Category!=="Decks";
   vSideText("",r.Description);vWait("Loading the preview…",isDoc);$("#vHint").textContent="Use the arrow keys to flip through.";vOpen();
