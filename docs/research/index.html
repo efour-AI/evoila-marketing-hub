@@ -144,7 +144,7 @@ select{font:inherit;font-size:13px;color:var(--ink);background:var(--card);borde
 .checks ul{margin:6px 0 2px;padding-left:0;list-style:none}
 .checks li{padding-left:18px;position:relative;margin:2px 0}
 .checks li::before{position:absolute;left:0;font-weight:700}
-.checks li.ok::before{content:"¹3";color:var(--ok)}.checks li.no::before{content:"¹5";color:#B42318}.checks li.todo::before{content:"2";color:var(--warn)}
+.checks li.ok::before{content:"\2713";color:var(--ok)}.checks li.no::before{content:"\2715";color:#B42318}.checks li.todo::before{content:"\2022";color:var(--warn)}
 .cnt{display:block;text-align:right;font-size:11.5px;color:var(--muted);margin-top:2px}.cnt.over{color:#B42318;font-weight:700}
 .tyhint{margin:-2px 0 8px}.tyhint.over{color:#B42318}
 @media (prefers-color-scheme:dark){.checks.bad summary,.checks li.no::before,.cnt.over,.tyhint.over{color:#FF9C93}}
