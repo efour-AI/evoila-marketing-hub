@@ -296,6 +296,23 @@ footer{text-align:center;font-size:12px;color:var(--muted);padding:0 16px 28px}
 .talk .tx{display:block}
 .talk .tm b{color:var(--ink);font-weight:600}
 .talk .tx{white-space:pre-wrap;word-break:break-word}
+.pickbox{border:1px solid var(--line);border-radius:12px;background:var(--soft);padding:12px 14px;margin:0 0 14px}
+.pickbox .ph{display:flex;justify-content:space-between;gap:10px;flex-wrap:wrap;align-items:baseline}
+.pickbox .ph b{font-size:14.5px}.pickbox .ph span{font-size:12px;color:var(--muted)}
+.pickbox .mine{font-size:13.5px;margin:6px 0 0}.pickbox .mine b{font-weight:700}
+.pickf{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px;align-items:center}
+.pickf input,.pickf select{font:inherit;font-size:13.5px;padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink)}
+.pickf input,.pickf select{width:auto;margin:0}
+.pickf input{width:150px;text-transform:uppercase;font-weight:700;letter-spacing:.03em}
+.pickf input::placeholder{text-transform:none;font-weight:400;letter-spacing:0}
+.roster{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.roster span{font-size:12px;border-radius:999px;padding:3px 10px;background:var(--idlebg);color:var(--idle)}
+.roster span.in{background:var(--okbg);color:var(--ok);font-weight:600}
+.hchart{width:100%;max-width:760px;height:auto;display:block;margin:4px 0 6px}
+.hchart text{font-size:11px;fill:var(--muted)}
+.hleg{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--muted);margin:0 0 10px}
+.hleg i{display:inline-block;width:10px;height:3px;border-radius:2px;vertical-align:middle;margin-right:5px}
+.hsum{font-size:13px;margin:0 0 8px}.hsum b{font-weight:700}
 .say{display:flex;gap:6px;margin-top:8px;flex-wrap:wrap}
 .say input{flex:1;min-width:160px;font:inherit;font-size:13.5px;padding:7px 10px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink)}
 .say select{font:inherit;font-size:13px;padding:6px 8px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--ink)}
@@ -364,7 +381,8 @@ const ASK_API="https://hook.us2.make.com/4ffhqfa9sd2q1wpo39eqqycmxph9o3g1";
 const ACT="https://hook.us2.make.com/91mst8q1pr5j2smjck26k4a23tlrcrn8";
 const USAGE_API="https://hook.us2.make.com/rriq5jx9prumtlnma8kqcq8yrxs85kp5";   /* Make "evoila Hub Usage" (admins only, paged) */
 const VIEW_API="https://hook.us2.make.com/58mhuld1g0oyaqansfn8k64655b7w6fy";   /* Make "evoila Hub Library Viewer" */
-const STOCK_API="https://hook.us2.make.com/i7odv87knw3mn2xqpu6rs379r6ghvupb";  /* Make "evoila Hub Stocks": a=picks (Airtable Stock Picks), a=quotes (live prices) */
+const STOCK_API="https://hook.us2.make.com/i7odv87knw3mn2xqpu6rs379r6ghvupb";
+const PICK_API="https://hook.us2.make.com/6oiosdc7ioggr15pc9xqets5pfcb0tvc";  /* Make "evoila Hub Stock Pick Entry": a=addpick, one pick per person per week (Entry key), locks at the Wednesday 3:00 PM Central close */  /* Make "evoila Hub Stocks": a=picks (Airtable Stock Picks), a=quotes (live prices) */
 const PHOTOS={"Kevin O'Brien":"img/kevin-obrien.jpg","Glen Tindal":"img/glen-tindal.jpg","Mark Maisano":"img/mark-maisano.jpg","Andrew Hald":"img/andrew-hald.jpg","Tom MacKay":"img/tom-mackay.jpg?v=2"};
 const BASE=location.pathname.replace(/index\.html$/,"").replace(/\/hub\/?$/,"/").replace(/([^\/])$/,"$1/");
 const ANALYTICS_URL="https://claude.ai/artifact/Gj7nCXY9v9N1YuPkxd5r6w";
@@ -1224,7 +1242,13 @@ function meetings(){
 /* ---------- stock picks ---------- */
 /* One pick each at the end of the Wednesday call. Start = closing price (3:00 PM Central) that day, end = 1:00 PM Central
    the next Wednesday (locked by stock_picks.py). Live rows use the current price. $100 one-time buy-in rides every week's pick. Trash talk lives in Airtable Stock Talk. */
-let STK=null,QUO={},QUO_AT=null,TALK=[],STK_ME="",TOPEN=TH0||null,TALL=false,TFEED={open:false,n:5};
+let STK=null,QUO={},QUO_AT=null,TALK=[],STK_ME="",TOPEN=TH0||null,TALL=false,TFEED={open:false,n:5},HFILT="All";
+const STK_PEOPLE=["Kevin O'Brien","Glen Tindal","Mark Maisano","Andrew Hald","Tom MacKay","Julie Tindal"];
+const STK_COL={"Kevin O'Brien":"#0D09B5","Glen Tindal":"#0BD7A1","Mark Maisano":"#E8590C","Andrew Hald":"#0075E4","Tom MacKay":"#C2255C","Julie Tindal":"#8E6CEF"};
+/* the 3:00 PM Central close on a "Week of" date, as a timestamp (handles CST/CDT) */
+function stkClose(w){const s=new Date(w+"T18:00:00Z").toLocaleString("en-US",{timeZone:"America/Chicago",timeZoneName:"shortOffset"});const m=s.match(/GMT([+-]\d+)/);const o=m?+m[1]:-6;return Date.parse(w+"T"+String(15-o).padStart(2,"0")+":00:00Z");}
+/* the next Wednesday whose close hasn't happened yet (where a new pick goes) */
+function stkNextWeek(){const t=new Date().toLocaleDateString("en-CA",{timeZone:"America/Chicago"});for(let k=0;k<9;k++){const d=new Date(t+"T12:00:00Z");d.setUTCDate(d.getUTCDate()+k);const w=d.toISOString().slice(0,10);if(d.getUTCDay()===3&&stkClose(w)>Date.now())return w;}return t;}
 function stocks(){
   const c=section("stocks","Stock picks","Pick at the Wednesday call · Wednesday close to 1:00 PM next Wednesday, Central");
   const box=el("div");c.appendChild(box);
@@ -1254,7 +1278,6 @@ function stocks(){
   const fill=()=>{box.innerHTML="";
     if(STK===null){box.appendChild(el("div","empty","Loading this week's picks…"));return;}
     if(STK==="err"){box.appendChild(el("div","empty","Couldn't load the picks just now. Refresh in a minute."));return;}
-    if(!STK.length){box.appendChild(el("div","empty","No picks yet. They show up here after the Wednesday marketing call."));return;}
     const ret=p=>{if(p["Start price"]==null)return null;const e=p.Status==="Final"&&p["End price"]!=null?p["End price"]:QUO[p.Ticker];return e==null?null:e/p["Start price"]-1;};
     const now=p=>p.Status==="Final"&&p["End price"]!=null?p["End price"]:QUO[p.Ticker];
     const pct=r=>r==null?"–":(r>=0?"+":"")+(r*100).toFixed(2)+"%";
@@ -1262,7 +1285,39 @@ function stocks(){
     const cls=r=>r==null?"":r>=0?"up":"dn";
     const who=(n,jab)=>{const d=el("span","pwho");if(PHOTOS[n]){const im=el("img");im.src=BASE+PHOTOS[n];im.alt="";d.appendChild(im);}else d.appendChild(el("i",null,n.charAt(0)));
       const w=el("span");w.appendChild(document.createTextNode(first(n)));if(jab)w.appendChild(el("span","jab","“"+jab.Message+"” "+first(jab.From)));d.appendChild(w);return d;};
-    const weeks=[...new Set(STK.map(p=>p["Week of"]))].sort();
+    const allWeeks=[...new Set(STK.map(p=>p["Week of"]))].sort();
+    const weeks=allWeeks.filter(w=>stkClose(w)<=Date.now()||STK.some(p=>p["Week of"]===w&&p["Start price"]!=null));   /* started weeks */
+    const nextW=stkNextWeek();
+    const isAdmin=STK_ME==="Kevin O'Brien";
+    /* ---- add a pick ---- */
+    const pb=el("div","pickbox");box.appendChild(pb);
+    const ph=el("div","ph");ph.appendChild(el("b",null,"Your pick for the week of "+fmt(nextW,{month:"short",day:"numeric"})));
+    ph.appendChild(el("span",null,"Locks at the 3:00 PM Central close, Wed "+fmt(nextW,{month:"short",day:"numeric"})+" · runs to 1:00 PM the next Wednesday"));pb.appendChild(ph);
+    const nextPicks=STK.filter(p=>p["Week of"]===nextW);
+    const mine=nextPicks.find(p=>p.Person===STK_ME);
+    pb.appendChild(el("p","mine",mine?"":"You haven't picked yet. One stock, any US ticker. You can change it until the close."));
+    if(mine){const m=pb.lastChild;m.append("You're in with ",el("b",null,mine.Ticker),". Change it any time before the close.");}
+    const f=el("form","pickf");const inp=el("input");inp.type="text";inp.maxLength=10;inp.placeholder="Ticker, e.g. NVDA";inp.autocomplete="off";inp.setAttribute("aria-label","Ticker");
+    let forSel=null,wkSel=null;
+    if(isAdmin){forSel=el("select");forSel.setAttribute("aria-label","Pick for");STK_PEOPLE.forEach(n=>{const o=el("option",null,n===STK_ME?"Me":"For "+first(n));o.value=n===STK_ME?"":n;forSel.appendChild(o);});
+      const cw=weeks[weeks.length-1],open=cw&&!STK.some(p=>p["Week of"]===cw&&p.Status==="Final")&&cw!==nextW;
+      if(open){wkSel=el("select");wkSel.setAttribute("aria-label","Week");const o1=el("option",null,"Week of "+fmt(nextW,{month:"short",day:"numeric"}));o1.value="";const o2=el("option",null,"This week ("+fmt(cw,{month:"short",day:"numeric"})+", priced at its close)");o2.value="now";wkSel.append(o1,o2);}}
+    const sb=el("button","btn sm",mine?"Change pick":"Lock in pick");sb.type="submit";
+    f.append(inp);if(forSel)f.append(forSel);if(wkSel)f.append(wkSel);f.append(sb);pb.appendChild(f);
+    f.onsubmit=async e=>{e.preventDefault();const tk=inp.value.trim().toUpperCase().replace(/^\$/,"");
+      if(!/^[A-Z0-9.\-]{1,10}$/.test(tk)){flash("Type a ticker symbol, like NVDA or VRT.","err",true);return inp.focus();}
+      sb.disabled=true;sb.textContent="Checking…";
+      try{const r=await fetch(PICK_API,{method:"POST",body:new URLSearchParams({t:token,a:"addpick",s:tk,for:forSel?forSel.value:"",wk:wkSel?wkSel.value:""})});
+        const txt=await r.text();let j=null;try{j=JSON.parse(txt);}catch(x){}
+        if(!j||!j.ok){sb.disabled=false;sb.textContent=mine?"Change pick":"Lock in pick";flash("Couldn't find "+tk+". Check the ticker symbol and try again.","err",true);return;}
+        STK=STK.filter(p=>!(p.Person===j.who&&p["Week of"]===j.week));
+        STK.push({Person:j.who,Ticker:j.ticker,"Week of":j.week,Status:"Waiting for start price",Source:"Hub"});
+        track("stock pick",j.ticker);flash((j.who===STK_ME?"You're in with ":first(j.who)+" is in with ")+j.ticker+" for the week of "+fmt(j.week,{month:"short",day:"numeric"})+".","ok",true);fill();}
+      catch(x){sb.disabled=false;sb.textContent=mine?"Change pick":"Lock in pick";flash("That didn't save. Try again in a minute.","err",true);}};
+    const ros=el("div","roster");STK_PEOPLE.forEach(n=>{const p=nextPicks.find(x=>x.Person===n);if(!p&&!STK.some(x=>x.Person===n))return;
+      const show=p&&(n===STK_ME||isAdmin);ros.appendChild(el("span",p?"in":"",first(n)+(p?(show?" · "+p.Ticker:" ✓"):" · not in yet")));});
+    if(ros.childNodes.length){pb.appendChild(ros);pb.appendChild(el("p","measure","Everyone else's pick stays hidden until the close."));pb.lastChild.style.margin="6px 0 0";}
+    if(!weeks.length){box.appendChild(el("div","empty","No weeks have started yet. Picks go live at the Wednesday close."));return;}
     const cur=weeks[weeks.length-1],curPicks=STK.filter(p=>p["Week of"]===cur);
     const isLive=curPicks.some(p=>p.Status!=="Final");
     /* this week */
@@ -1277,7 +1332,7 @@ function stocks(){
       const th=aimed(p.Person);
       tr.appendChild(el("td","rank",r==null?"":String(i+1)));const w=el("td");w.appendChild(who(p.Person,th[0]));tr.appendChild(w);
       const k=el("td");k.appendChild(el("span","tk",p.Ticker));k.appendChild(el("span","co",p.Company||""));tr.appendChild(k);
-      tr.appendChild(el("td","r hide-m",p["Start price"]!=null?usd(p["Start price"]):"locks at close"));
+      tr.appendChild(el("td","r hide-m",p["Start price"]!=null?usd(p["Start price"]):"pricing at the close"));
       tr.appendChild(el("td","r",usd(now(p))));tr.appendChild(el("td","r "+cls(r),pct(r)));
       const bt=el("td","r");const bb=el("button","bub"+(TOPEN===p.Person?" on":""),"💬 "+th.length);bb.type="button";bb.title=p.Person===STK_ME?"What they're saying about your pick":"Talk to "+first(p.Person);
       bb.onclick=()=>{TOPEN=TOPEN===p.Person?null:p.Person;TALL=false;fill();};bt.appendChild(bb);tr.appendChild(bt);tb.appendChild(tr);
@@ -1285,33 +1340,71 @@ function stocks(){
     t.appendChild(tb);tw.appendChild(t);box.appendChild(tw);
     const lead=curPicks.filter(p=>ret(p)!=null).sort((a,b)=>ret(b)-ret(a))[0];
     if(!isLive&&lead)box.appendChild(el("p","measure",first(lead.Person)+" won the week with "+lead.Ticker+" ("+pct(ret(lead))+")."));
-    /* all-time leaderboard: $100 each, rolled into every week's pick */
-    const people=[...new Set(STK.map(p=>p.Person))];
-    const stats=people.map(n=>{let pot=100,wk=0,best=null;
-      weeks.forEach(w=>{const p=STK.find(x=>x.Person===n&&x["Week of"]===w);const r=p?ret(p):null;if(r==null)return;pot*=1+r;wk++;if(!best||r>best.r)best={r,tk:p.Ticker};});
-      const wins=weeks.filter(w=>{const ps=STK.filter(x=>x["Week of"]===w);if(ps.some(x=>x.Status!=="Final"))return false;const top=ps.filter(x=>ret(x)!=null).sort((a,b)=>ret(b)-ret(a))[0];return top&&top.Person===n;}).length;
-      return {n,pot,wk,best,wins};}).filter(x=>x.wk).sort((a,b)=>b.pot-a.pot);
+    /* per-person history: $100 rides every started week's pick */
+    const SP=STK.filter(p=>weeks.includes(p["Week of"]));
+    const people=STK_PEOPLE.filter(n=>SP.some(p=>p.Person===n));
+    const done=w=>!SP.some(p=>p["Week of"]===w&&p.Status!=="Final");
+    const rankOf=p=>{const ps=SP.filter(x=>x["Week of"]===p["Week of"]&&ret(x)!=null).sort((a,b)=>ret(b)-ret(a));const i=ps.indexOf(p);return i<0?null:{i:i+1,n:ps.length};};
+    /* no pick for a week = sits in cash (0%) once you've played; $ carries over unchanged */
+    const hist={};people.forEach(n=>{let pot=100;hist[n]=weeks.map(w=>{const p=SP.find(x=>x.Person===n&&x["Week of"]===w);
+      if(!p){const played=SP.some(x=>x.Person===n&&x["Week of"]<w);return {w,p:null,cash:played,r:played?0:null,pot};}
+      const r=ret(p);if(r!=null)pot*=1+r;return {w,p,r,pot};});});
+    const stats=people.map(n=>{const h=hist[n].filter(x=>x.r!=null&&x.p);const pot=h.length?h[h.length-1].pot:100;let best=null;h.forEach(x=>{if(!best||x.r>best.r)best={r:x.r,tk:x.p.Ticker};});
+      const wins=weeks.filter(w=>{if(!done(w))return false;const top=SP.filter(x=>x["Week of"]===w&&ret(x)!=null).sort((a,b)=>ret(b)-ret(a))[0];return top&&top.Person===n;}).length;
+      return {n,pot,wk:h.length,best,wins};}).filter(x=>x.wk).sort((a,b)=>b.pot-a.pot);
     const lcol=el("div");box.appendChild(lcol);
     if(stats.length){
-      lcol.appendChild(el("div","grp","Leaderboard · $100 one-time buy-in, rides every pick"));
+      lcol.appendChild(el("div","grp","Leaderboard · $100 to start, rides every pick (no pick = cash)"));
       const lw=el("div","stkwrap"),lt=el("table","stk");
       lt.innerHTML="<thead><tr><th></th><th>Who</th><th class='r'>$100 is now</th><th class='r'>Total</th><th class='r hide-m'>Weeks won</th><th class='r hide-m'>Best pick</th></tr></thead>";
       const lb=el("tbody");
       stats.forEach((x,i)=>{const tr=el("tr");if(i===0)tr.className="lead";const r=x.pot/100-1;
         tr.appendChild(el("td","rank",String(i+1)));const w=el("td");w.appendChild(who(x.n));tr.appendChild(w);
         tr.appendChild(el("td","r "+cls(r),usd(x.pot)));tr.appendChild(el("td","r "+cls(r),pct(r)));
-        tr.appendChild(el("td","r hide-m",String(x.wins)+" of "+weeks.filter(w=>!STK.some(p=>p["Week of"]===w&&p.Status!=="Final")).length));
+        tr.appendChild(el("td","r hide-m",String(x.wins)+" of "+weeks.filter(done).length));
         tr.appendChild(el("td","r hide-m",x.best?x.best.tk+" "+pct(x.best.r):"–"));lb.appendChild(tr);});
       lt.appendChild(lb);lw.appendChild(lt);lcol.appendChild(lw);
       if(isLive)lcol.appendChild(el("p","measure","Includes this week at live prices."));
     }
-    /* past weeks */
-    const past=weeks.slice(0,-1).reverse();
-    if(past.length){box.appendChild(el("div","grp","Past weeks"));
-      past.forEach(w=>{const ps=STK.filter(p=>p["Week of"]===w).sort((a,b)=>(ret(b)??-9)-(ret(a)??-9));const d=document.createElement("details");d.className="meet";
-        const sm=document.createElement("summary");sm.append(el("b",null,"Week of "+fmt(w,{month:"short",day:"numeric"})),el("span",null,ps[0]&&ret(ps[0])!=null?first(ps[0].Person)+" won · "+ps[0].Ticker+" "+pct(ret(ps[0])):""));d.appendChild(sm);
-        const ul=el("ul","list");ps.forEach(p=>{const li=el("li");const l=el("div","l");l.appendChild(el("b",null,first(p.Person)+" · "+p.Ticker));l.appendChild(el("span",null,usd(p["Start price"])+" → "+usd(now(p))));li.append(l,el("div","r "+cls(ret(p)),pct(ret(p))));ul.appendChild(li);});
-        d.appendChild(ul);box.appendChild(d);});}
+    /* pick history: chart of each $100 over time + every pick ever made */
+    if(people.length){
+      box.appendChild(el("div","grp","Pick history"));
+      const chips=el("div","chips");["All"].concat(people).forEach(n=>{const c=el("button","chip"+(HFILT===n?" on":""),n==="All"?"Everyone":first(n));c.type="button";c.onclick=()=>{HFILT=n;fill();};chips.appendChild(c);});box.appendChild(chips);
+      const shown=HFILT==="All"?people:[HFILT];
+      /* line chart: $ value after each week, starting at $100 */
+      const W=Math.round(Math.max(300,Math.min(760,box.clientWidth||640))),H=W<480?180:210,L=44,R=12,T=10,B=26,xs=weeks.length;
+      const vals=[100];shown.forEach(n=>hist[n].forEach(x=>vals.push(x.pot)));
+      let lo=Math.min(...vals),hi=Math.max(...vals);const pad=Math.max((hi-lo)*.12,2);lo-=pad;hi+=pad;
+      const X=i=>L+(xs?i*(W-L-R)/xs:0),Y=v=>T+(hi-v)*(H-T-B)/(hi-lo);
+      let svg=`<svg class="hchart" viewBox="0 0 ${W} ${H}" role="img" aria-label="Value of each $100 by week">`;
+      const ticks=4;for(let k=0;k<=ticks;k++){const v=lo+(hi-lo)*k/ticks;svg+=`<line x1="${L}" x2="${W-R}" y1="${Y(v)}" y2="${Y(v)}" stroke="var(--line)" stroke-width="1"/><text x="${L-6}" y="${Y(v)+4}" text-anchor="end">$${Math.round(v)}</text>`;}
+      svg+=`<line x1="${L}" x2="${W-R}" y1="${Y(100)}" y2="${Y(100)}" stroke="var(--muted)" stroke-width="1" stroke-dasharray="3 3" opacity=".6"/>`;
+      const lbl=["Start"].concat(weeks.map(w=>fmt(w,{month:"short",day:"numeric"})));const every=Math.ceil(lbl.length/8);
+      lbl.forEach((t,i)=>{if(i%every===0||i===lbl.length-1)svg+=`<text x="${X(i)}" y="${H-8}" text-anchor="${i===0?"start":i===lbl.length-1?"end":"middle"}">${t}</text>`;});
+      shown.forEach(n=>{const pts=[[X(0),Y(100)]].concat(hist[n].map((x,i)=>[X(i+1),Y(x.pot)]));const c=STK_COL[n]||"#6B6478";
+        svg+=`<polyline fill="none" stroke="${c}" stroke-width="2.25" stroke-linejoin="round" stroke-linecap="round" points="${pts.map(q=>q.join(",")).join(" ")}"/>`;
+        const e=pts[pts.length-1];svg+=`<circle cx="${e[0]}" cy="${e[1]}" r="3.5" fill="${c}"><title>${first(n)}: ${usd(hist[n][hist[n].length-1].pot)}</title></circle>`;});
+      svg+="</svg>";const cw=el("div");cw.innerHTML=svg;box.appendChild(cw.firstChild);
+      const lg=el("div","hleg");shown.forEach(n=>{const s2=el("span");const i2=el("i");i2.style.background=STK_COL[n]||"#6B6478";s2.append(i2,first(n)+" "+usd(hist[n][hist[n].length-1].pot));lg.appendChild(s2);});box.appendChild(lg);
+      if(HFILT!=="All"){const h=hist[HFILT].filter(x=>x.r!=null&&x.p);if(h.length){const up=h.filter(x=>x.r>0).length,avg=h.reduce((a,x)=>a+x.r,0)/h.length;
+        const bst=h.reduce((a,x)=>x.r>a.r?x:a),wst=h.reduce((a,x)=>x.r<a.r?x:a);const sm=el("p","hsum");
+        sm.innerHTML="";sm.append(el("b",null,String(h.length)),(h.length===1?" pick · ":" picks · "),el("b",null,up+" of "+h.length)," up weeks · average week ",el("b",null,pct(avg))," · best "+bst.p.Ticker+" "+pct(bst.r)+" · worst "+wst.p.Ticker+" "+pct(wst.r));box.appendChild(sm);}}
+      const hw=el("div","stkwrap"),ht=el("table","stk");
+      ht.innerHTML="<thead><tr><th>Week</th><th>Who</th><th>Pick</th><th class='r hide-m'>Start</th><th class='r hide-m'>End</th><th class='r'>Change</th><th class='r'>Place</th><th class='r'>$100 after</th></tr></thead>";
+      const hb=el("tbody");
+      weeks.slice().reverse().forEach(w=>{shown.map(n=>Object.assign({n},hist[n].find(x=>x.w===w))).filter(x=>x.p||x.cash).sort((a,b)=>(b.p?1:0)-(a.p?1:0)||(b.r??-9)-(a.r??-9)).forEach(x=>{const tr=el("tr");
+        if(!x.p){const wd=el("td");wd.textContent=fmt(w,{month:"short",day:"numeric"});tr.appendChild(wd);const wh=el("td");wh.appendChild(who(x.n));tr.appendChild(wh);
+          const k=el("td");k.appendChild(el("span","tk","Cash"));k.appendChild(el("span","co","No pick, sat out"));tr.appendChild(k);
+          tr.append(el("td","r hide-m","–"),el("td","r hide-m","–"),el("td","r","0.00%"),el("td","r","–"),el("td","r "+cls(x.pot/100-1),usd(x.pot)));hb.appendChild(tr);return;}
+        const p=x.p,rk=rankOf(p);
+        const wd=el("td");wd.textContent=fmt(w,{month:"short",day:"numeric"});if(p.Status!=="Final")wd.appendChild(el("span","badge live","Live"));tr.appendChild(wd);
+        const wh=el("td");wh.appendChild(who(p.Person));tr.appendChild(wh);
+        const k=el("td");k.appendChild(el("span","tk",p.Ticker));k.appendChild(el("span","co",p.Company||""));tr.appendChild(k);
+        tr.appendChild(el("td","r hide-m",usd(p["Start price"])));tr.appendChild(el("td","r hide-m",p.Status==="Final"?usd(p["End price"]):usd(now(p))));
+        tr.appendChild(el("td","r "+cls(x.r),pct(x.r)));tr.appendChild(el("td","r",rk?(rk.i===1&&done(w)?"🏆 1st":rk.i+" of "+rk.n):"–"));
+        tr.appendChild(el("td","r "+cls(x.pot/100-1),usd(x.pot)));hb.appendChild(tr);});});
+      ht.appendChild(hb);hw.appendChild(ht);box.appendChild(hw);
+    }
   };
   fill();
   const go=async()=>{try{let recs=[],offset="",n=0;

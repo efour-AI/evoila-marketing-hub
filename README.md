@@ -114,6 +114,21 @@ Weekly contest: at the end of the marketing call each person names one stock. Ai
    table, `a=quotes&s=AMD,VRT` returns current prices. The page ranks this week live, and the leaderboard rolls a
    $100 stake through every week's pick (compounded).
 
+4. **Add a pick** on the hub (top of Stock picks): anyone types a ticker for the next Wednesday whose 3:00 PM Central close
+   hasn't happened yet, and can change it until that close. Make scenario "evoila Hub Stock Pick Entry" (7099979,
+   hook 3084076) works out the week in Central time, checks the ticker on Yahoo Finance and upserts one row per person
+   per week on **Entry key** (`Week of|Person`). Kevin can also enter a pick for someone else, or for the week already
+   running (its start price is cleared and relocks at that week's close on the next job run). A pick typed on the hub
+   wins over the call notes for that person. Everyone else's ticker stays hidden on the hub until the close.
+5. **No pick = cash**: a week without a pick counts as 0% (the $ carries over). The hub's Pick history shows it as Cash.
+6. **Pick history** on the hub: a chart of each person's $100 week by week, and every pick with start, end, change,
+   place that week and the $ after it. Filter by person for picks, up weeks, average week, best and worst.
+7. **Weekly recap email**: right after the Wednesday close (first job run after 3:05 PM Central; waits until 6:00 PM for
+   the new week's picks), `send_recap()` writes one **Stock Recaps** row (tblrzHpdzCTDSoYtN) per player: the week that
+   just ended, the $100 leaderboard and the new picks, with their personal hub link. Airtable automation "Stock recap:
+   email the leaderboard" sends each row from kevin@efour.ai. To resend a week: delete that week's Stock Recaps rows;
+   the next job run writes them again.
+
 To fix a misheard pick: edit Ticker on the row (clear Start price too if it was already locked), then run the workflow
 by hand from the Actions tab. To add a pick by hand: add a row with Week of, Person and Ticker.
 

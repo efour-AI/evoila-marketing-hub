@@ -8,8 +8,12 @@ At the end of the Wednesday marketing call each person names one stock. This job
      (Status -> Final).
 The hub shows live prices for Live rows itself (Make scenario "evoila Hub Stocks").
 
+People can also type their own pick on the hub (Add a pick); a pick typed on the hub wins over the call notes for that person.
 Fix a misheard pick by editing Ticker on the row (and clearing Start price if it was already locked).
 Status "Check this" means the job could not find the ticker or a price; the reason is in Notes.
+
+  4. Right after the Wednesday close, emails everyone in the contest the week that just ended, the $100 leaderboard
+     and the new picks (Stock Recaps table -> Airtable automation "Stock recap: email the leaderboard").
 
 Runs from .github/workflows/stock-picks.yml (Wednesday afternoons, daily backstop, or by hand).
 Public repository: never print transcript text to the log.
@@ -28,7 +32,8 @@ CT = ZoneInfo("America/Chicago")
 T_PICK = "tblBbD5cXBJtKoyC5"
 F = {"pick": "fldFmqm0N7IqXHcIC", "week": "fldp1MSIyrZkgYvzf", "person": "fld06JErZcpEV3FaA", "ticker": "fldjN6YRilOn9OYfC",
      "company": "fldbdD7BEq9T4svBe", "start": "fldRgOxet2uwIunMk", "start_t": "fldnIdGA7fNTj6Wni", "end": "fld4zsHPhepkEPZUw",
-     "end_t": "fldlZUxt6R6Fp0MSV", "status": "fldUTYIOWC0mPDZYp", "source": "fldwgqdOGk6YqEk5C", "notes": "fldY9SLaihVJZPdTb"}
+     "end_t": "fldlZUxt6R6Fp0MSV", "status": "fldUTYIOWC0mPDZYp", "source": "fldwgqdOGk6YqEk5C", "notes": "fldY9SLaihVJZPdTb",
+     "key": "fldG63JaFzWIT8P8S"}   # key = "Week of|Person", shared with the hub's Add a pick form (Make "evoila Hub Stock Pick Entry")
 PEOPLE = ["Kevin O'Brien", "Glen Tindal", "Mark Maisano", "Andrew Hald", "Tom MacKay", "Julie Tindal"]
 START_AT, END_AT = (15, 0), (13, 0)           # Central time: start at the close on the call day, end 1:00 PM a week later
 UA = {"User-Agent": "Mozilla/5.0 (evoila marketing hub)"}
@@ -97,7 +102,8 @@ def at(day, hm):
 def extract_from_calls():
     have = rows(T_PICK)
     used = {r["fields"].get(F["source"], "") for r in have}
-    weeks = {r["fields"].get(F["week"]) for r in have}
+    # weeks whose call was already read; picks typed on the hub (Source "Hub") don't count, so the call still fills in everyone else
+    weeks = {r["fields"].get(F["week"]) for r in have if str(r["fields"].get(F["source"], "")).startswith("rec")}
     taken = {(r["fields"].get(F["week"]), r["fields"].get(F["person"])) for r in have}
     calls = rows(T_CALL, "AND({Full Transcript}!='', IS_AFTER({Meeting Date}, DATEADD(TODAY(), -3, 'days')))")
     added = 0
@@ -125,7 +131,7 @@ def extract_from_calls():
                 continue
             name = company_name(tk)
             ok = name is not None
-            recs.append({"fields": {F["pick"]: f"{day} · {who.split()[0]} · {tk}", F["week"]: day, F["person"]: who,
+            recs.append({"fields": {F["pick"]: f"{day} · {who.split()[0]} · {tk}", F["week"]: day, F["person"]: who, F["key"]: f"{day}|{who}",
                                     F["ticker"]: tk, F["company"]: name or str(p.get("company", ""))[:80],
                                     F["status"]: "Waiting for start price" if ok else "Check this",
                                     F["source"]: c["id"],
@@ -173,9 +179,117 @@ def lock_prices():
     print(f"rows updated: {len(upd)}")
 
 
+# ---------- weekly recap email ----------
+T_RECAP = "tblrzHpdzCTDSoYtN"   # Stock Recaps: one row per person; Airtable automation "Stock recap: email the leaderboard" sends it
+R = {"recap": "fldY5VTTOQOFrZ80x", "week": "fldlFl0ARnQfVrGhR", "person": "fldMFkIxnSaPQJSxq", "email": "fldQfRfSZFm7PNTRa",
+     "subject": "fld9TmSlXQLoS61oy", "body": "fldeqpq4Hu92GxPmW"}
+CONTACT = {"Kevin O'Brien": ("kevin@efour.ai", "k=kIhieWCCaUVNyD3EnzGKN9sYDpxrXkQ"),
+           "Glen Tindal": ("gtindal@evoila.com", "t=_-rb1wdm6r6qV4aKtwbY9fkj"),
+           "Mark Maisano": ("mmaisano@evoila.com", "t=8r5cCaAoWcCDXf89jwdF4AlN"),
+           "Andrew Hald": ("ahald@evoila.com", "t=u3R8qJ-vN6eFqP3tnG2bd_7u"),
+           "Tom MacKay": ("tmackay@evoila.com", "t=nbsigyrOsUxjB7vXlPC-mnUH"),
+           "Julie Tindal": ("jtindal@evoila.com", "k=JdYbYq7jM3COOOrZAb5rMZwtPXIu0F09")}
+HUB = "https://efour-ai.github.io/evoila-marketing-hub/"
+
+
+def _pct(r):
+    return f"{'+' if r >= 0 else '-'}{abs(r) * 100:.2f}%"
+
+
+def _usd(v):
+    return f"${v:,.2f}"
+
+
+def _day(d):
+    return f"{d:%b} {d.day}"
+
+
+def send_recap(now=None):
+    """Right after the Wednesday 3:00 PM Central close: email everyone in the contest the week that just ended,
+    the $100 leaderboard and the new week's picks. Once per Wednesday (Stock Recaps rows for that date)."""
+    now = now or dt.datetime.now(CT)
+    today = now.astimezone(CT).date()
+    wed = today - dt.timedelta(days=(today.weekday() - 2) % 7)          # most recent Wednesday
+    close = at(wed, START_AT)
+    if now < close + dt.timedelta(minutes=5) or now > close + dt.timedelta(days=2):
+        return
+    if rows(T_RECAP, f"{{Week of}}='{wed.isoformat()}'"):
+        return
+    picks = [r["fields"] for r in rows(T_PICK, "AND({Ticker}!='', {Person}!='', {Week of}!='')")]
+    wk = lambda f: dt.date.fromisoformat(f[F["week"]][:10])
+    ended = [f for f in picks if wed - dt.timedelta(days=14) < wk(f) <= wed - dt.timedelta(days=7)]
+    new = [f for f in picks if wed - dt.timedelta(days=7) < wk(f) <= wed]
+    if not ended and not new:
+        return
+    if any(f.get(F["status"]) != "Final" for f in ended):
+        print("recap waits: last week's end prices aren't all locked")
+        return
+    if not new and now < at(wed, (18, 0)):
+        print("recap waits: no picks for the new week yet (call notes may still land)")
+        return
+    ret = lambda f: (f[F["end"]] / f[F["start"]] - 1) if f.get(F["start"]) and f.get(F["end"]) else None
+    # leaderboard over every finished week: $100 rides each pick
+    final = [f for f in picks if f.get(F["status"]) == "Final" and ret(f) is not None]
+    weeks = sorted({f[F["week"]][:10] for f in final})
+    board = {}
+    for w in weeks:
+        wp = sorted([f for f in final if f[F["week"]][:10] == w], key=ret, reverse=True)
+        for i, f in enumerate(wp):
+            b = board.setdefault(f[F["person"]], {"pot": 100.0, "wins": 0, "n": 0})
+            b["pot"] *= 1 + ret(f)
+            b["n"] += 1
+            b["wins"] += i == 0
+    first = lambda n: str(n).split()[0]
+    lines_ended = []
+    ended_s = sorted([f for f in ended if ret(f) is not None], key=ret, reverse=True)
+    for i, f in enumerate(ended_s, 1):
+        lines_ended.append(f"{i}. {first(f[F['person']])} · {f[F['ticker']]} {_usd(f[F['start']])} → {_usd(f[F['end']])}, <b>{_pct(ret(f))}</b>")
+    lines_board = []
+    for i, (n, b) in enumerate(sorted(board.items(), key=lambda kv: -kv[1]["pot"]), 1):
+        lines_board.append(f"{i}. {first(n)} <b>{_usd(b['pot'])}</b> ({_pct(b['pot'] / 100 - 1)}) · "
+                           f"{b['wins']} of {len(weeks)} {'week' if len(weeks) == 1 else 'weeks'} won")
+    lines_new = []
+    for f in sorted(new, key=lambda f: f[F["person"]]):
+        price = f" at {_usd(f[F['start']])}" if f.get(F["start"]) else ""
+        lines_new.append(f"{first(f[F['person']])} · {f[F['ticker']]}{price}")
+    players = [n for n in PEOPLE if any(f[F["person"]] == n for f in picks)] or ["Kevin O'Brien"]
+    if "Kevin O'Brien" not in players:
+        players.append("Kevin O'Brien")
+    missing = [first(n) for n in players if not any(f[F["person"]] == n for f in new)]
+    nxt = wed + dt.timedelta(days=7)
+    winner = ended_s[0] if ended_s else None
+    if winner:
+        subject = f"Stock picks: {first(winner[F['person']])} took the week with {winner[F['ticker']]} ({_pct(ret(winner))})"
+    else:
+        subject = f"Stock picks: the week of {_day(wed)} is live"
+    recs = []
+    for n in players:
+        email, link = CONTACT[n]
+        parts = [f"Hi {first(n)},", ""]
+        if winner:
+            parts += [f"The week of {_day(wed - dt.timedelta(days=7))} closed at 1:00 PM today. "
+                      f"{first(winner[F['person']])} won it with {winner[F['ticker']]} ({_pct(ret(winner))}).", "",
+                      "<b>Last week</b>"] + lines_ended + [""]
+        if lines_board:
+            parts += ["<b>Leaderboard</b> ($100 to start, riding every pick)"] + lines_board + [""]
+        parts += [f"<b>This week's picks</b> (priced at today's 3:00 PM close)"]
+        parts += lines_new or ["None in yet."]
+        if missing:
+            parts += [f"No pick yet, sitting in cash: {', '.join(missing)}. Add one on the hub to get back in for next week."]
+        parts += ["", f'<a href="{HUB}#{link}&go=stocks"><b>Open the stock picks on the hub</b></a>', "",
+                  f"Next pick locks at the 3:00 PM Central close on Wednesday, {_day(nxt)}. Add or change yours on the hub any time before then.",
+                  "", "The hub"]
+        recs.append({"fields": {R["recap"]: f"{wed.isoformat()} · {first(n)}", R["week"]: wed.isoformat(), R["person"]: n,
+                                R["email"]: email, R["subject"]: subject, R["body"]: "\n".join(parts)}})
+    for i in range(0, len(recs), 10):
+        api("POST", f"https://api.airtable.com/v0/{BASE}/{T_RECAP}", {"records": recs[i:i + 10], "typecast": True})
+    print(f"recap queued for {len(recs)} people")
+
+
 def run():
     extract_from_calls()
     lock_prices()
+    send_recap()
 
 
 if __name__ == "__main__":
