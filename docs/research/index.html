@@ -121,7 +121,7 @@ select{font:inherit;font-size:13px;color:var(--ink);background:var(--card);borde
 .nform textarea{resize:none;min-height:34px}
 .iedit label{display:block;margin:0 0 8px}
 .iedit .lbl{margin-bottom:3px}
-.erow{display:grid;grid-template-columns:1.4fr 1fr 1fr;gap:8px}
+.erow{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 @media(max-width:560px){.erow{grid-template-columns:1fr}}
 .addidea{display:flex;gap:6px;margin:12px 0 0;padding-top:12px;border-top:1px dashed var(--line)}
 .dropped{margin:6px 0 0}
@@ -132,6 +132,22 @@ select{font:inherit;font-size:13px;color:var(--ink);background:var(--card);borde
 @media (prefers-color-scheme:dark){.totop{background:var(--indigo)}}
 @media (max-width:560px){.totop span{display:none}.totop{padding:11px}}
 @media print{.totop{display:none}}
+.gcols{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin:12px 0 4px}
+.gcols h3,.tth{font-size:13.5px;margin:10px 0 4px}
+.gcols h3:first-child{margin-top:0}
+.tth{margin-top:14px}
+.stypes td:first-child{white-space:nowrap}
+.cosp{font-size:13px;margin:4px 0}
+.checks{margin:8px 0 0;border:1px solid var(--line);border-radius:9px;padding:6px 10px;font-size:12.5px}
+.checks summary{cursor:pointer;font-weight:600}
+.checks.good summary{color:var(--ok)}.checks.warn summary{color:var(--warn)}.checks.bad summary{color:#B42318}
+.checks ul{margin:6px 0 2px;padding-left:0;list-style:none}
+.checks li{padding-left:18px;position:relative;margin:2px 0}
+.checks li::before{position:absolute;left:0;font-weight:700}
+.checks li.ok::before{content:"¹3";color:var(--ok)}.checks li.no::before{content:"¹5";color:#B42318}.checks li.todo::before{content:"2";color:var(--warn)}
+.cnt{display:block;text-align:right;font-size:11.5px;color:var(--muted);margin-top:2px}.cnt.over{color:#B42318;font-weight:700}
+.tyhint{margin:-2px 0 8px}.tyhint.over{color:#B42318}
+@media (prefers-color-scheme:dark){.checks.bad summary,.checks li.no::before,.cnt.over,.tyhint.over{color:#FF9C93}}
 footer{text-align:center;color:var(--muted);font-size:12px;padding:0 16px 28px}
 @media print{nav.tabs{display:none}header{padding-bottom:20px}.card{break-inside:avoid}#all{display:none}}
 </style>
@@ -184,12 +200,84 @@ footer{text-align:center;color:var(--muted);font-size:12px;padding:0 16px 28px}
 <h2 class="out">Explore 2027: session proposal ideas <span class="note">Edit ideas, add notes, and mark one ready for Kevin when it is final</span></h2>
 <div class="card cfp">
  <div class="cfpgrid">
-  <div><span class="lbl">Event</span><b>May 10 to 13, 2027</b><span class="hint">Resorts World Las Vegas</span></div>
-  <div><span class="lbl">Proposals due</span><b>Dec 11, 2026</b><span class="hint">5:00 PM Pacific</span></div>
-  <div><span class="lbl">Tracks</span><b>4</b><span class="hint">Cloud Infrastructure, Security, Innovation, Modern Apps and Agents</span></div>
-  <div><span class="lbl">First step</span><b>Title + abstract</b><span class="hint">Via Broadcom's speaker portal</span></div>
+  <div><span class="lbl">Proposals due</span><b>Dec 11, 2026</b><span class="hint">5:00 PM Pacific. You can edit a submission until then.</span></div>
+  <div><span class="lbl">Decisions</span><b>Feb 9, 2027</b><span class="hint">Broadcom emails the status of every submission</span></div>
+  <div><span class="lbl">Event</span><b>May 10 to 13, 2027</b><span class="hint">Resorts World Las Vegas. Accepted speakers must be available all four days.</span></div>
+  <div><span class="lbl">Reviewed</span><b>Exactly as submitted</b><span class="hint">Get every detail right before you hit submit</span></div>
  </div>
  <p class="hint">Broadcom first announced May 3 to 6 and later moved the event to May 10 to 13. Confirm on <a href="https://www.vmware.com/explore/us" target="_blank" rel="noopener">vmware.com/explore</a> before booking travel.</p>
+</div>
+
+
+<div class="card" id="guidelines">
+<h2>Submission rules from Broadcom <span class="note"><a href="https://static.rainfocus.com/vmware/explore2027lv/static/staticfile/staticfile/Explore%202027%20Submission%20Guidelines%20Doc.docx_1793278862440001OzWh.pdf" target="_blank" rel="noopener">Full guidelines (PDF)</a></span></h2>
+<p class="pick"><b>What gets priority:</b> submissions with named partner or customer co-speakers. Broadcom also says external speakers do better with a Broadcom expert on stage. Every idea below has a Co-speakers line for this.</p>
+
+<div class="gcols">
+ <div>
+  <h3>Title</h3>
+  <ul class="rules">
+   <li>100 characters maximum.</li>
+   <li>Say what the audience will learn. Clear and concise beats clever.</li>
+  </ul>
+  <h3>Abstract</h3>
+  <ul class="rules">
+   <li>1,100 characters maximum. Aim for 700 to 850, counting spaces.</li>
+   <li>Say what attendees will learn and why it matters. Leave out product feature lists.</li>
+   <li>No bulleted lists. Put talking points in a sentence, separated by commas.</li>
+   <li>Don't open with "In this session you will learn". Open with a question or an industry data point.</li>
+   <li>No sales pitch. Present something attendees can learn and use.</li>
+  </ul>
+ </div>
+ <div>
+  <h3>Names and abbreviations</h3>
+  <ul class="rules">
+   <li>Use the full product name the first time: VMware Cloud Foundation, VMware vSphere, VMware vDefend. After that, "vSphere" is fine.</li>
+   <li>No abbreviations for VMware by Broadcom product names on first reference.</li>
+   <li>Spell out other abbreviations the first time with the short form in brackets, for example Virtual Private Cloud (VPC). Widely known ones like AI, CPU and RAM are fine.</li>
+  </ul>
+  <h3>One idea, one submission</h3>
+  <ul class="rules">
+   <li>Don't send the same session under different tracks. Pick a primary track and, if it fits, a secondary one.</li>
+   <li>Pick one primary product and up to four more. An industry tag (Financial Services, Healthcare, Public Sector, Telecommunications) is optional.</li>
+  </ul>
+ </div>
+ <div>
+  <h3>What goes in the catalog</h3>
+  <ul class="rules">
+   <li>Titles and abstracts appear in the public catalog exactly as submitted. Nothing confidential or unreleased.</li>
+   <li>For us: no assessment method, and no customer named without their sign-off.</li>
+  </ul>
+  <h3>Before you submit</h3>
+  <ul class="rules">
+   <li>Have someone outside your field read it for typos and clarity, and someone like the target attendee check that it's interesting.</li>
+   <li>Each speaker creates an account with their company email. Questions go to <a href="mailto:event.content@broadcom.com">event.content@broadcom.com</a>.</li>
+   <li>Each external primary speaker on a breakout, panel, tutorial, roundtable or quick talk gets one free event pass.</li>
+  </ul>
+ </div>
+</div>
+
+<h3 class="tth">Session types</h3>
+<div class="tw"><table class="stypes">
+ <thead><tr><th>Type</th><th>Length</th><th>Speakers</th><th>Levels allowed</th><th>Best for</th></tr></thead>
+ <tbody>
+  <tr><td><b>Breakout Session</b></td><td>45 min</td><td>Up to 2</td><td>T100, T200, T300, Business</td><td>Most of our ideas</td></tr>
+  <tr><td><b>Panel Discussion</b></td><td>45 min</td><td>1 Broadcom moderator + up to 4</td><td>T100, Business</td><td>Partner and customer together on stage</td></tr>
+  <tr><td><b>Tutorial</b></td><td>90 min</td><td>Up to 4</td><td>T200, T300</td><td>Hands-on technical depth</td></tr>
+  <tr><td><b>Quick Talk</b></td><td>20 min</td><td>Up to 2</td><td>T100, T200, Business</td><td>One sharp lesson or field story</td></tr>
+  <tr><td><b>Meet the Expert Roundtable</b></td><td>30 min</td><td>Up to 2</td><td>T100, T200, T300</td><td>Q&amp;A with up to 10 attendees at a whiteboard</td></tr>
+ </tbody>
+</table></div>
+<p class="hint">Levels: <b>T100</b> is for people new to the technology. <b>T200</b> covers real deployments and assumes some familiarity. <b>T300</b> is advanced configuration with detailed demos. <b>Business</b> is strategy and customer outcomes. Booth theater sessions are for Broadcom speakers only.</p>
+
+<h3 class="tth">What this changed in our ideas</h3>
+<ul class="rules">
+ <li><b>Mark's partner and customer session is now a Panel Discussion.</b> Three speakers is more than a breakout allows, so it needs a Broadcom moderator and has to be T100 or Business.</li>
+ <li><b>Titles now spell out VMware Cloud Foundation</b> instead of VCF. All of them still fit in 100 characters.</li>
+ <li><b>Format and level now use Broadcom's exact names</b>, and every idea has a co-speaker line. Most say "to ask", which is the next job.</li>
+ <li><b>Two titles still say 9.x.</b> Put the actual release name in before submitting.</li>
+ <li><b>No idea has an abstract yet.</b> Each idea card now shows a live check: title and abstract length, banned openers, bullets, unexplained abbreviations, and whether the level fits the session type.</li>
+</ul>
 </div>
 
 <div class="card">
@@ -331,6 +419,40 @@ const ROLES={"Andrew Hald":"Lead Solution Architect","Tom MacKay":"VP Technical 
 const PHOTO={"Andrew Hald":"andrew-hald","Tom MacKay":"tom-mackay","Glen Tindal":"glen-tindal","Mark Maisano":"mark-maisano","Kevin O'Brien":"kevin-obrien"};
 const TRACKS=["Cloud Infrastructure","Security","Innovation","Modern Apps and Agents"];
 const LATER=["Deck in progress","Submitted","Dropped"];
+const TYPES={"Breakout Session":{len:"45 min",sp:2,lv:["T100","T200","T300","Business"]},
+ "Panel Discussion":{len:"45 min",sp:5,lv:["T100","Business"],note:"1 Broadcom moderator + up to 4"},
+ "Tutorial":{len:"90 min",sp:4,lv:["T200","T300"]},
+ "Quick Talk":{len:"20 min",sp:2,lv:["T100","T200","Business"]},
+ "Meet the Expert Roundtable":{len:"30 min",sp:2,lv:["T100","T200","T300"]}};
+const LEVELS=["T100","T200","T300","Business"];
+const ACR=["VCF","VKS","VPC","DR","TCO","MCP","ESA","SDLC","IaC","FinOps","CFP","VDI"];
+const PROD=["vSphere","vSAN","vDefend","Avi Load Balancer","Cloud Foundation","Tanzu","Live Recovery","Data Services Manager"];
+function lvl(v){v=String(v||"");const m=v.match(/(\d00)/);return /business/i.test(v)?"Business":m?"T"+m[1]:"";}
+function checks(f){
+  const out=[],t=f.Title||"",a=f["Abstract draft"]||"",both=t+" \n"+a;
+  out.push(t.length<=100?{ok:1,m:"Title "+t.length+"/100"}:{ok:0,m:"Title is "+t.length+" characters, over the 100 limit"});
+  if(!a)out.push({ok:2,m:"No abstract yet (aim for 700 to 850 characters)"});
+  else if(a.length>1100)out.push({ok:0,m:"Abstract is "+a.length+" characters, over the 1,100 limit"});
+  else if(a.length<700||a.length>850)out.push({ok:2,m:"Abstract "+a.length+" characters (aim for 700 to 850)"});
+  else out.push({ok:1,m:"Abstract "+a.length+" characters"});
+  if(/^\s*([-*•]|\d+[.)])\s/m.test(a))out.push({ok:0,m:"Abstract has a bulleted list; use a sentence with commas"});
+  if(/in this session,? you('ll| will) learn/i.test(a))out.push({ok:0,m:"Don't open with \"In this session you will learn\""});
+  ACR.forEach(x=>{const re=new RegExp("\\b"+x+"\\b");if(re.test(both)&&!both.includes("("+x+")"))out.push({ok:2,m:x+" needs spelling out on first use, with ("+x+") after it"});});
+  PROD.forEach(x=>{const i=both.indexOf(x);if(i>=0&&both.slice(Math.max(0,i-7),i)!=="VMware ")out.push({ok:2,m:"Use the full name \"VMware "+x+"\" the first time"});});
+  if(/\b9\.x\b/.test(both))out.push({ok:2,m:"Replace 9.x with the actual release name"});
+  const ty=TYPES[f.Format],L=lvl(f.Level);
+  if(!ty)out.push({ok:2,m:"Pick a session type"});
+  else if(L&&!ty.lv.includes(L))out.push({ok:0,m:f.Format+" allows "+ty.lv.join(", ")+", not "+L});
+  if(!String(f["Co-speakers"]||"").trim())out.push({ok:2,m:"No co-speaker yet. Named partner or customer co-speakers get priority."});
+  else if(/to ask/i.test(f["Co-speakers"]))out.push({ok:2,m:"Co-speaker still to ask"});
+  return out;
+}
+function checkBox(f){
+  const cs=checks(f),bad=cs.filter(c=>c.ok===0).length,warn=cs.filter(c=>c.ok===2).length;
+  const d=el("details","checks"+(bad?" bad":warn?" warn":" good"));
+  d.appendChild(el("summary",null,bad?bad+" rule"+(bad>1?"s":"")+" broken":warn?warn+" thing"+(warn>1?"s":"")+" to finish before submitting":"Ready against Broadcom's rules"));
+  const ul=el("ul");cs.forEach(c=>{const li=el("li",c.ok===1?"ok":c.ok===0?"no":"todo",c.m);ul.appendChild(li);});d.appendChild(ul);return d;
+}
 function ls(k){try{return localStorage.getItem(k)}catch(e){return null}}
 function ss(k,v){try{localStorage.setItem(k,v)}catch(e){}}
 const hp=new URLSearchParams(location.hash.slice(1));
@@ -401,10 +523,13 @@ function ideaItem(i){
   if(OPEN[i.id]==="edit"){li.appendChild(editForm(i));return li;}
   const top=el("div","itop");top.appendChild(el("b",null,f.Title||"(untitled)"));
   top.appendChild(el("span","spill "+(f.Status||"Brainstorming").replace(/\s+/g,"-"),f.Status||"Brainstorming"));li.appendChild(top);
-  const tagTxt=[f.Track,f.Format,f.Level].filter(Boolean).join(" · ");if(tagTxt)li.appendChild(el("span","tag",tagTxt));
+  const ty=TYPES[f.Format];
+  const tagTxt=[f.Track+(f["Secondary track"]?" + "+f["Secondary track"]:""),f.Format?(f.Format+(ty?" ("+ty.len+")":"")):"",f.Level].filter(x=>x&&x!=="undefined").join(" · ");if(tagTxt)li.appendChild(el("span","tag",tagTxt));
+  if(f["Co-speakers"]){const cs=el("p","cosp");cs.appendChild(el("b",null,"Co-speakers: "));cs.appendChild(document.createTextNode(f["Co-speakers"]));li.appendChild(cs);}
   if(f["Why it should draw"])li.appendChild(el("p",null,f["Why it should draw"]));
   if(f["Watch-out"])li.appendChild(el("p","watch",f["Watch-out"]));
   if(f["Abstract draft"]){const a=el("div","abs");a.appendChild(el("span","lbl","Abstract draft"));a.appendChild(el("p",null,f["Abstract draft"]));li.appendChild(a);}
+  if(f.Status!=="Dropped")li.appendChild(checkBox(f));
   const meta=[];if(f["Last edited by"])meta.push("Last edited by "+f["Last edited by"]);if(f.Status==="Ready for Kevin"&&f["Ready by"])meta.push("marked ready by "+f["Ready by"]);
   if(meta.length)li.appendChild(el("div","imeta",meta.join(" · ")));
   /* actions */
@@ -445,22 +570,31 @@ async function setStatus(i,st,b){
 function editForm(i){
   const f=i.fields,frm=el("form","iedit");
   const fld=(label,node)=>{const l=el("label",null);l.appendChild(el("span","lbl",label));l.appendChild(node);frm.appendChild(l);return node;};
-  const ti=fld("Working title",el("input"));ti.value=f.Title||"";ti.maxLength=300;ti.required=true;
+  const counter=(node,max,target)=>{const c=el("span","cnt");const up=()=>{const n=node.value.length;c.textContent=n+(max?" / "+max:"")+(target?" (aim "+target+")":"");c.className="cnt"+(max&&n>max?" over":"");};node.addEventListener("input",up);up();return c;};
+  const ti=fld("Working title",el("input"));ti.value=f.Title||"";ti.maxLength=300;ti.required=true;ti.parentNode.appendChild(counter(ti,100));
   const row=el("div","erow");frm.appendChild(row);
   const mk=(label,node)=>{const l=el("label",null);l.appendChild(el("span","lbl",label));l.appendChild(node);row.appendChild(l);return node;};
-  const tk=mk("Track",el("select"));tk.appendChild(new Option("Choose a track",""));TRACKS.forEach(t=>tk.appendChild(new Option(t,t)));tk.value=f.Track||"";
-  const fm=mk("Format",el("input"));fm.value=f.Format||"";fm.placeholder="Breakout, Tutorial, Quick Talk";fm.maxLength=100;
-  const lv=mk("Level",el("input"));lv.value=f.Level||"";lv.placeholder="Technical 200, Business";lv.maxLength=100;
+  const tk=mk("Primary track",el("select"));tk.appendChild(new Option("Choose a track",""));TRACKS.forEach(t=>tk.appendChild(new Option(t,t)));tk.value=f.Track||"";
+  const t2=mk("Secondary track",el("select"));t2.appendChild(new Option("None",""));TRACKS.forEach(t=>t2.appendChild(new Option(t,t)));t2.value=f["Secondary track"]||"";
+  const row2=el("div","erow");frm.appendChild(row2);
+  const mk2=(label,node)=>{const l=el("label",null);l.appendChild(el("span","lbl",label));l.appendChild(node);row2.appendChild(l);return node;};
+  const fm=mk2("Session type",el("select"));fm.appendChild(new Option("Choose a type",""));Object.keys(TYPES).forEach(k=>fm.appendChild(new Option(k+" ("+TYPES[k].len+")",k)));
+  if(f.Format&&!TYPES[f.Format])fm.appendChild(new Option(f.Format+" (old value)",f.Format));fm.value=f.Format||"";
+  const lv=mk2("Level",el("select"));lv.appendChild(new Option("Choose a level",""));LEVELS.forEach(x=>lv.appendChild(new Option(x,x)));lv.value=lvl(f.Level);
+  const hint=el("p","hint tyhint");frm.appendChild(hint);
+  const upHint=()=>{const ty=TYPES[fm.value];hint.textContent=ty?fm.value+": "+ty.len+", "+(ty.note||"up to "+ty.sp+" speakers")+", levels "+ty.lv.join(", ")+".":"";hint.classList.toggle("over",!!(ty&&lv.value&&!ty.lv.includes(lv.value)));};
+  fm.onchange=upHint;lv.onchange=upHint;upHint();
   const ta=(label,v,rows,ph)=>{const t=fld(label,el("textarea"));t.rows=rows;t.value=v||"";if(ph)t.placeholder=ph;return t;};
+  const co=ta("Co-speakers",f["Co-speakers"],2,"Named Broadcom, partner or customer co-speakers. Named partners or customers get priority.");
   const wy=ta("Why it should draw",f["Why it should draw"],2);
   const wo=ta("Watch-out",f["Watch-out"],2);
-  const ab=ta("Abstract draft",f["Abstract draft"],5,"Rough is fine. What the session covers, who it is for, what they leave with.");
+  const ab=ta("Abstract draft",f["Abstract draft"],6,"No bullets, no \"In this session you will learn\". Open with a question or a data point. Full product names first time.");ab.parentNode.appendChild(counter(ab,1100,"700 to 850"));
   const act=el("div","iact");const sv=el("button","btn sm","Save");sv.type="submit";const cn=el("button","btn ghost sm","Cancel");cn.type="button";
   cn.onclick=()=>{delete OPEN[i.id];render();};act.append(sv,cn);frm.appendChild(act);
   frm.onsubmit=async e=>{e.preventDefault();sv.disabled=true;sv.textContent="Saving...";
-    const v={title:ti.value.trim(),track:tk.value,format:fm.value.trim(),level:lv.value.trim(),why:wy.value.trim(),watch:wo.value.trim(),abstract:ab.value.trim()};
+    const v={title:ti.value.trim(),track:tk.value,track2:t2.value,format:fm.value.trim(),level:lv.value.trim(),cospk:co.value.trim(),why:wy.value.trim(),watch:wo.value.trim(),abstract:ab.value.trim()};
     try{await call(Object.assign({a:"save",id:i.id},v));tr("Explore idea","Edited "+v.title.slice(0,80));
-      Object.assign(f,{Title:v.title,Track:v.track,Format:v.format,Level:v.level,"Why it should draw":v.why,"Watch-out":v.watch,"Abstract draft":v.abstract,"Last edited by":ME});
+      Object.assign(f,{Title:v.title,Track:v.track,"Secondary track":v.track2,"Co-speakers":v.cospk,Format:v.format,Level:v.level,"Why it should draw":v.why,"Watch-out":v.watch,"Abstract draft":v.abstract,"Last edited by":ME});
       delete OPEN[i.id];render();}
     catch(err){alert(err.message);sv.disabled=false;sv.textContent="Save";}};
   setTimeout(()=>ti.focus(),0);

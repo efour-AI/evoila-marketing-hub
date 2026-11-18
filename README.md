@@ -135,9 +135,13 @@ The Explore 2027 session ideas load only with a hub link, through Make scenario 
 (7016111, hook 3059126). Airtable tables **Explore 2027 Ideas** (tblROwwllTRKr7ce2) and **Explore 2027 Idea Notes**
 (tblm4VrKFVqS7OAZP).
 
-- `a=ideas` lists ideas and notes. `a=save` saves an idea's title, track, format, level, why, watch-out and abstract
-  draft. `a=note` adds a note. `a=add` adds an idea for a speaker. `a=status` sets Status (Brainstorming, Ready for
+- `a=ideas` lists ideas and notes. `a=save` saves an idea's title, primary and secondary track, session type, level,
+  co-speakers, why, watch-out and abstract draft (an empty track saves as blank). `a=note` adds a note. `a=add` adds an idea for a speaker. `a=status` sets Status (Brainstorming, Ready for
   Kevin, Deck in progress, Submitted, Dropped). Last edited by, Ready by and a note's From come from the sender's
   personal link, so nobody can write as someone else.
 - Anyone with a hub link can edit any idea and add notes. Only Kevin sees the full status menu.
 - Airtable automation "Explore idea: ready, tell Kevin" emails Kevin when an idea's Status becomes Ready for Kevin.
+- The page carries Broadcom's Explore 2027 submission guidelines (title and abstract rules, session types and speaker
+  limits, levels). Each idea shows live checks against those rules: title under 100 characters, abstract under 1,100
+  (aim 700 to 850), acronyms spelled out, full VMware product names, no "9.x", level allowed for the session type, and a
+  named co-speaker.
